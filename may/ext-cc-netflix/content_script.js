@@ -12,10 +12,34 @@ const PERF = {
   rafSync: 0,
   lastSubtitleText: "",
   lastPinyinOut: "",
+  worker: /** @type {Worker|null} */ (null),
+  workerReady: false,
 };
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function ensurePinyinWorker() {
+  if (PERF.workerReady) return;
+  PERF.workerReady = true;
+  try {
+    const url = chrome?.runtime?.getURL?.("pinyin_worker.js");
+    if (!url) throw new Error("chrome.runtime.getURL unavailable");
+    const w = new Worker(url);
+    w.onmessage = (ev) => {
+      const msg = ev?.data;
+      if (!msg || msg.type !== "PINYIN_RESULT") return;
+      if (msg.text !== PERF.lastSubtitleText) return;
+      if (typeof msg.out === "string" && msg.out) {
+        PERF.lastPinyinOut = msg.out;
+        setDupUi(msg.out, true);
+      }
+    };
+    PERF.worker = w;
+  } catch {
+    PERF.worker = null;
+  }
 }
 
 function isChineseText(s) {
@@ -133,18 +157,25 @@ function syncDuplicateFromDomNow() {
     return;
   }
 
-  let out = PERF.lastPinyinOut || text;
+  if (PERF.lastPinyinOut) setDupUi(PERF.lastPinyinOut, true);
+  else setDupUi(text, true);
+
+  ensurePinyinWorker();
+  if (PERF.worker) {
+    PERF.worker.postMessage({ type: "PINYIN", text });
+    return;
+  }
+
+  // Fallback sync conversion if Worker unavailable.
+  let out = text;
   try {
     if (typeof pinyinPro !== "undefined" && typeof pinyinPro.pinyin === "function") {
       const arr = pinyinPro.pinyin(text, { type: "array" });
-      if (Array.isArray(arr) && arr.length) out = arr.join(" ");
-      else out = pinyinPro.pinyin(text);
+      out = Array.isArray(arr) && arr.length ? arr.join(" ") : pinyinPro.pinyin(text);
     }
-  } catch {
-    // ignore, fallback to original text
-  }
-  PERF.lastPinyinOut = out;
-  setDupUi(out, true);
+  } catch {}
+  PERF.lastPinyinOut = out || text;
+  setDupUi(PERF.lastPinyinOut, true);
 }
 
 function scheduleSyncDuplicate() {
@@ -239,6 +270,7 @@ function watchForPlayer() {
   console.log(`[ext-cc-netflix] loaded v${BUILD}`);
   injectStyleOnce();
   ensureDupUi();
+  ensurePinyinWorker();
   scheduleSyncDuplicate();
   void tryEnableSubtitlesOnce();
 

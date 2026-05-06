@@ -11,10 +11,35 @@ const PERF = {
   rafSync: 0,
   lastCaptionText: "",
   lastPinyinOut: "",
+  worker: /** @type {Worker|null} */ (null),
+  workerReady: false,
 };
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function ensurePinyinWorker() {
+  if (PERF.workerReady) return;
+  PERF.workerReady = true;
+  try {
+    const url = chrome?.runtime?.getURL?.("pinyin_worker.js");
+    if (!url) throw new Error("chrome.runtime.getURL unavailable");
+    const w = new Worker(url);
+    w.onmessage = (ev) => {
+      const msg = ev?.data;
+      if (!msg || msg.type !== "PINYIN_RESULT") return;
+      // Only apply if it matches the latest caption (avoid stale updates).
+      if (msg.text !== PERF.lastCaptionText) return;
+      if (typeof msg.out === "string" && msg.out) {
+        PERF.lastPinyinOut = msg.out;
+        setDupUi(msg.out, true);
+      }
+    };
+    PERF.worker = w;
+  } catch (e) {
+    PERF.worker = null;
+  }
 }
 
 function isChineseText(s) {
@@ -172,21 +197,26 @@ function syncDuplicateCcFromDomNow() {
     return;
   }
 
-  let out = PERF.lastPinyinOut || text;
+  // Show last result immediately (reduces perceived delay), then update async from worker.
+  if (PERF.lastPinyinOut) setDupUi(PERF.lastPinyinOut, true);
+  else setDupUi(text, true);
+
+  ensurePinyinWorker();
+  if (PERF.worker) {
+    PERF.worker.postMessage({ type: "PINYIN", text });
+    return;
+  }
+
+  // Fallback to sync conversion if Worker isn't available.
+  let out = text;
   try {
     if (typeof pinyinPro !== "undefined" && typeof pinyinPro.pinyin === "function") {
-      // Tone marks (default). Use array output for stable spacing.
       const arr = pinyinPro.pinyin(text, { type: "array" });
-      if (Array.isArray(arr) && arr.length) out = arr.join(" ");
-      else out = pinyinPro.pinyin(text);
-    } else {
-      console.warn("[ext-cc] pinyinPro is not available; cannot convert to tone pinyin.");
+      out = Array.isArray(arr) && arr.length ? arr.join(" ") : pinyinPro.pinyin(text);
     }
-  } catch {
-    // fall back to original text
-  }
-  PERF.lastPinyinOut = out;
-  setDupUi(out, true);
+  } catch {}
+  PERF.lastPinyinOut = out || text;
+  setDupUi(PERF.lastPinyinOut, true);
 }
 
 function scheduleSyncDuplicateCc() {
@@ -226,6 +256,7 @@ function watchForPlayerAndAutoEnable() {
   console.log(`[ext-cc] loaded v${BUILD}`);
   injectStyleOnce();
   ensureDupUi();
+  ensurePinyinWorker();
   scheduleSyncDuplicateCc();
 
   void tryEnableCaptionsOnce();

@@ -10,6 +10,12 @@
       "run_at": "document_idle"
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["pinyin_worker.js", "pinyin-pro.browser.js"],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ],
   "icons": {}
 }
 
