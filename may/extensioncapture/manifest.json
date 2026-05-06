@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "ExtensionCapture (Full Page → Clipboard)",
+  "version": "0.1.3",
+  "description": "Click the toolbar icon to capture a full-page screenshot and copy it to the clipboard.",
+  "action": {
+    "default_title": "Capture full page to clipboard"
+  },
+  "background": {
+    "service_worker": "service_worker.js",
+    "type": "module"
+  },
+  "permissions": ["activeTab", "scripting", "tabs", "offscreen", "clipboardWrite", "notifications"],
+  "host_permissions": ["<all_urls>"]
+}
+
