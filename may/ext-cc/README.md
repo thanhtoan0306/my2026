@@ -17,5 +17,5 @@ Chrome extension (MV3) for YouTube:
 
 - Works on `https://www.youtube.com/*`
 - YouTube UI changes can break selectors; the extension retries enabling CC on SPA navigations.
-- Pinyin conversion uses embedded `tiny-pinyin` browser build (global `Pinyin`).
+- Pinyin conversion uses embedded `pinyin-pro` browser build (global `pinyinPro`) with tone marks (default).
 
