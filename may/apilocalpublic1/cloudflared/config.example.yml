@@ -1,0 +1,10 @@
+# Sao chép thành config.yml (bootstrap script sẽ tự tạo).
+# credentials-file trỏ tới file JSON do `cloudflared tunnel create` tạo trong ~/.cloudflared/
+
+tunnel: REPLACE_TUNNEL_UUID
+credentials-file: REPLACE_HOME/.cloudflared/REPLACE_TUNNEL_UUID.json
+
+ingress:
+  - hostname: api.example.com
+    service: http://127.0.0.1:58471
+  - service: http_status:404
