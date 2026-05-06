@@ -7,6 +7,12 @@
 
 const BUILD = "0.1.0";
 
+const PERF = {
+  rafSync: 0,
+  lastCaptionText: "",
+  lastPinyinOut: "",
+};
+
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -144,12 +150,18 @@ function readCurrentCaptionText() {
   return t.replace(/\s+/g, " ").trim();
 }
 
-function syncDuplicateCcFromDom() {
+function syncDuplicateCcFromDomNow() {
   if (!isWatchLikePage()) {
     setDupUi("", false);
     return;
   }
   const text = readCurrentCaptionText();
+  if (text === PERF.lastCaptionText) {
+    // No change: avoid extra work and UI churn.
+    return;
+  }
+  PERF.lastCaptionText = text;
+
   if (!text) {
     setDupUi("", false);
     return;
@@ -160,7 +172,7 @@ function syncDuplicateCcFromDom() {
     return;
   }
 
-  let out = text;
+  let out = PERF.lastPinyinOut || text;
   try {
     if (typeof pinyinPro !== "undefined" && typeof pinyinPro.pinyin === "function") {
       // Tone marks (default). Use array output for stable spacing.
@@ -173,7 +185,16 @@ function syncDuplicateCcFromDom() {
   } catch {
     // fall back to original text
   }
+  PERF.lastPinyinOut = out;
   setDupUi(out, true);
+}
+
+function scheduleSyncDuplicateCc() {
+  if (PERF.rafSync) return;
+  PERF.rafSync = requestAnimationFrame(() => {
+    PERF.rafSync = 0;
+    syncDuplicateCcFromDomNow();
+  });
 }
 
 function watchUrlChanges(onChange) {
@@ -195,7 +216,7 @@ function watchForPlayerAndAutoEnable() {
     if (now - lastAttemptAt < 750) return;
     lastAttemptAt = now;
     void tryEnableCaptionsOnce();
-    syncDuplicateCcFromDom();
+    scheduleSyncDuplicateCc();
   });
   obs.observe(document.documentElement, { childList: true, subtree: true });
   return obs;
@@ -205,7 +226,7 @@ function watchForPlayerAndAutoEnable() {
   console.log(`[ext-cc] loaded v${BUILD}`);
   injectStyleOnce();
   ensureDupUi();
-  syncDuplicateCcFromDom();
+  scheduleSyncDuplicateCc();
 
   void tryEnableCaptionsOnce();
 
@@ -214,7 +235,8 @@ function watchForPlayerAndAutoEnable() {
     injectStyleOnce();
     ensureDupUi();
     void tryEnableCaptionsOnce();
-    syncDuplicateCcFromDom();
+    PERF.lastCaptionText = "";
+    scheduleSyncDuplicateCc();
   });
 })();
 

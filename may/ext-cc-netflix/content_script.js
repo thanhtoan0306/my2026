@@ -8,6 +8,12 @@
 
 const BUILD = "0.1.0";
 
+const PERF = {
+  rafSync: 0,
+  lastSubtitleText: "",
+  lastPinyinOut: "",
+};
+
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -109,12 +115,15 @@ function readCurrentSubtitleText() {
   return t.replace(/\s+/g, " ").trim();
 }
 
-function syncDuplicateFromDom() {
+function syncDuplicateFromDomNow() {
   if (!isPlayerPage()) {
     setDupUi("", false);
     return;
   }
   const text = readCurrentSubtitleText();
+  if (text === PERF.lastSubtitleText) return;
+  PERF.lastSubtitleText = text;
+
   if (!text) {
     setDupUi("", false);
     return;
@@ -124,7 +133,7 @@ function syncDuplicateFromDom() {
     return;
   }
 
-  let out = text;
+  let out = PERF.lastPinyinOut || text;
   try {
     if (typeof pinyinPro !== "undefined" && typeof pinyinPro.pinyin === "function") {
       const arr = pinyinPro.pinyin(text, { type: "array" });
@@ -134,7 +143,16 @@ function syncDuplicateFromDom() {
   } catch {
     // ignore, fallback to original text
   }
+  PERF.lastPinyinOut = out;
   setDupUi(out, true);
+}
+
+function scheduleSyncDuplicate() {
+  if (PERF.rafSync) return;
+  PERF.rafSync = requestAnimationFrame(() => {
+    PERF.rafSync = 0;
+    syncDuplicateFromDomNow();
+  });
 }
 
 function findSubtitlesButton() {
@@ -211,7 +229,7 @@ function watchForPlayer() {
     injectStyleOnce();
     ensureDupUi();
     void tryEnableSubtitlesOnce();
-    syncDuplicateFromDom();
+    scheduleSyncDuplicate();
   });
   obs.observe(document.documentElement, { childList: true, subtree: true });
   return obs;
@@ -221,14 +239,15 @@ function watchForPlayer() {
   console.log(`[ext-cc-netflix] loaded v${BUILD}`);
   injectStyleOnce();
   ensureDupUi();
-  syncDuplicateFromDom();
+  scheduleSyncDuplicate();
   void tryEnableSubtitlesOnce();
 
   watchForPlayer();
   watchUrlChanges(() => {
     injectStyleOnce();
     ensureDupUi();
-    syncDuplicateFromDom();
+    PERF.lastSubtitleText = "";
+    scheduleSyncDuplicate();
     void tryEnableSubtitlesOnce();
   });
 })();
