@@ -155,7 +155,33 @@ function syncDuplicateCcFromDom() {
     return;
   }
   const show = isChineseText(text);
-  setDupUi(show ? text : "", show);
+  if (!show) {
+    setDupUi("", false);
+    return;
+  }
+
+  let out = text;
+  try {
+    if (typeof Pinyin !== "undefined") {
+      if (typeof Pinyin.isSupported === "function" && !Pinyin.isSupported()) {
+        console.warn("[ext-cc] Pinyin.isSupported() is false; cannot convert to pinyin.");
+      } else if (typeof Pinyin.parse === "function") {
+        // Build pinyin with spaces only between Han characters.
+        const tokens = Pinyin.parse(text);
+        const hanParts = [];
+        for (const tok of tokens) {
+          if (tok?.type === 2 && tok.target) hanParts.push(String(tok.target).toLowerCase());
+        }
+        if (hanParts.length) out = hanParts.join(" ");
+        else if (typeof Pinyin.convertToPinyin === "function") out = Pinyin.convertToPinyin(text, " ", true);
+      } else if (typeof Pinyin.convertToPinyin === "function") {
+        out = Pinyin.convertToPinyin(text, " ", true);
+      }
+    }
+  } catch {
+    // fall back to original text
+  }
+  setDupUi(out, true);
 }
 
 function watchUrlChanges(onChange) {

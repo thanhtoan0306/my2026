@@ -4,6 +4,7 @@ Chrome extension (MV3) for YouTube:
 
 - Auto-enables captions (CC) when you open a video.
 - Forces captions to **black background + yellow text** via injected CSS.
+- If current caption contains Chinese characters, shows a **pink duplicate line** converted to **pinyin**.
 
 ## Install (Developer mode)
 
@@ -16,4 +17,5 @@ Chrome extension (MV3) for YouTube:
 
 - Works on `https://www.youtube.com/*`
 - YouTube UI changes can break selectors; the extension retries enabling CC on SPA navigations.
+- Pinyin conversion uses embedded `tiny-pinyin` browser build (global `Pinyin`).
 
