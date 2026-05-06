@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "YT CC Black/Yellow",
+  "description": "Auto-enable YouTube captions and force black background + yellow text.",
+  "version": "0.1.0",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content_script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {}
+}
+
