@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>__CITY__ Weather Today</title>
+  </head>
+  <body style="margin:0; background:#f1f5ff; color:#111827; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <div style="max-width:720px; margin:0 auto; padding:0 16px 40px;">
+      <div style="height:22px; background: linear-gradient(90deg, #e8f0fe 0%, #fce8f6 45%, #e6f4ea 100%); border-bottom:1px solid #e5e7eb;"></div>
+      <div style="background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%); border:1px solid #e6eaf2; border-top:0; border-radius:0 0 16px 16px; padding:18px 18px 8px; box-shadow: 0 10px 24px rgba(17,24,39,0.06);">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div style="width:42px; height:42px; border-radius:12px; background:#e8f0fe; border:1px solid #d2e3fc; display:flex; align-items:center; justify-content:center;">
+              <span style="font-size:20px; line-height:1;">⛅</span>
+            </div>
+            <div>
+              <div style="font-size:13px; color:#5f6368; letter-spacing:0.2px;">Daily weather</div>
+              <div style="font-size:20px; font-weight:800; margin-top:2px; color:#202124;">__CITY__ · __TODAY__</div>
+            </div>
+          </div>
+          <div style="font-size:12px; color:#5f6368;">
+            Timezone: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; color:#202124;">__TZ__</span>
+          </div>
+        </div>
+
+        <div style="margin-top:14px; padding:12px 12px; background: linear-gradient(90deg, #e8f0fe 0%, #ffffff 45%, #e6f4ea 100%); border:1px solid #e6eaf2; border-radius:12px;">
+          <div style="font-size:13px; color:#5f6368;">Summary</div>
+          <div style="font-size:18px; font-weight:800; margin-top:4px; color:#202124;">__SUMMARY__</div>
+        </div>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%; margin-top:14px; border-collapse:collapse;">
+          <tr>
+            <td style="padding:10px 0;">
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div style="background:#ffffff; border:1px solid #e6eaf2; border-radius:12px; padding:12px;">
+                  <div style="font-size:12px; color:#5f6368;">Temp min</div>
+                  <div style="font-size:18px; font-weight:800; margin-top:4px; color:#1a73e8;">__TMIN__</div>
+                </div>
+                <div style="background:#ffffff; border:1px solid #e6eaf2; border-radius:12px; padding:12px;">
+                  <div style="font-size:12px; color:#5f6368;">Temp max</div>
+                  <div style="font-size:18px; font-weight:800; margin-top:4px; color:#1a73e8;">__TMAX__</div>
+                </div>
+                <div style="background:#ffffff; border:1px solid #e6eaf2; border-radius:12px; padding:12px;">
+                  <div style="font-size:12px; color:#5f6368;">Precipitation</div>
+                  <div style="font-size:18px; font-weight:800; margin-top:4px; color:#188038;">__PRECIP__</div>
+                </div>
+                <div style="background:#ffffff; border:1px solid #e6eaf2; border-radius:12px; padding:12px;">
+                  <div style="font-size:12px; color:#5f6368;">Max wind</div>
+                  <div style="font-size:18px; font-weight:800; margin-top:4px; color:#202124;">__WIND__</div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin-top:14px; padding-top:10px; border-top:1px solid #e6eaf2; font-size:12px; color:#5f6368;">
+          Fetched at: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; color:#202124;">__FETCHED_AT__</span>
+        </div>
+      </div>
+
+      <div style="margin-top:12px; padding-left:2px; font-size:12px; color:#5f6368;">
+        Source: Open-Meteo (no API key).
+      </div>
+    </div>
+  </body>
+</html>
+

@@ -10,6 +10,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import date, datetime
 from email.message import EmailMessage
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -154,68 +155,19 @@ def build_weather_email_html(w: WeatherToday) -> tuple[str, str]:
     summary = _wmo_label(w.weather_code)
     subject = f"Weather HCMC Today ({w.today.isoformat()}): {summary}"
 
-    html = f"""<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{w.city} Weather Today</title>
-  </head>
-  <body style="margin:0; background:#0b0f14; color:#e8eef9; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <div style="max-width:720px; margin:0 auto; padding:24px 16px 40px;">
-      <div style="background:rgba(17,24,36,0.92); border:1px solid rgba(255,255,255,0.10); border-radius:16px; padding:18px 18px 8px;">
-        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-          <div>
-            <div style="font-size:14px; color:#9fb0c7;">Daily weather</div>
-            <div style="font-size:20px; font-weight:700; margin-top:2px;">{w.city} · {w.today.isoformat()}</div>
-          </div>
-          <div style="font-size:12px; color:#9fb0c7;">
-            Timezone: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; color:#dbe7ff;">{w.tz}</span>
-          </div>
-        </div>
-
-        <div style="margin-top:14px; padding:12px 12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px;">
-          <div style="font-size:13px; color:#9fb0c7;">Summary</div>
-          <div style="font-size:18px; font-weight:700; margin-top:4px;">{summary}</div>
-        </div>
-
-        <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%; margin-top:14px; border-collapse:collapse;">
-          <tr>
-            <td style="padding:10px 0;">
-              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px;">
-                  <div style="font-size:12px; color:#9fb0c7;">Temp min</div>
-                  <div style="font-size:18px; font-weight:700; margin-top:4px;">{_fmt(w.t_min_c, suffix="°C")}</div>
-                </div>
-                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px;">
-                  <div style="font-size:12px; color:#9fb0c7;">Temp max</div>
-                  <div style="font-size:18px; font-weight:700; margin-top:4px;">{_fmt(w.t_max_c, suffix="°C")}</div>
-                </div>
-                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px;">
-                  <div style="font-size:12px; color:#9fb0c7;">Precipitation</div>
-                  <div style="font-size:18px; font-weight:700; margin-top:4px;">{_fmt(w.precip_mm, suffix=" mm")}</div>
-                </div>
-                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px;">
-                  <div style="font-size:12px; color:#9fb0c7;">Max wind</div>
-                  <div style="font-size:18px; font-weight:700; margin-top:4px;">{_fmt(w.wind_max_kph, suffix=" km/h")}</div>
-                </div>
-              </div>
-            </td>
-          </tr>
-        </table>
-
-        <div style="margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); font-size:12px; color:#9fb0c7;">
-          Fetched at: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; color:#dbe7ff;">{w.fetched_at.isoformat(timespec="seconds")}</span>
-        </div>
-      </div>
-
-      <div style="margin-top:12px; font-size:12px; color:#9fb0c7;">
-        Source: Open-Meteo (no API key).
-      </div>
-    </div>
-  </body>
-</html>
-"""
+    tpl_path = Path(__file__).resolve().parent / "weather_email.html"
+    tpl = tpl_path.read_text(encoding="utf-8")
+    html = (
+        tpl.replace("__CITY__", w.city)
+        .replace("__TODAY__", w.today.isoformat())
+        .replace("__TZ__", w.tz)
+        .replace("__SUMMARY__", summary)
+        .replace("__TMIN__", _fmt(w.t_min_c, suffix="°C"))
+        .replace("__TMAX__", _fmt(w.t_max_c, suffix="°C"))
+        .replace("__PRECIP__", _fmt(w.precip_mm, suffix=" mm"))
+        .replace("__WIND__", _fmt(w.wind_max_kph, suffix=" km/h"))
+        .replace("__FETCHED_AT__", w.fetched_at.isoformat(timespec="seconds"))
+    )
     return subject, html
 
 
