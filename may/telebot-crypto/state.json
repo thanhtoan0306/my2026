@@ -1,4 +1,5 @@
 {
   "interval_seconds": 10,
-  "telegram_offset": 301803676
+  "telegram_offset": 301803676,
+  "last_fetch_ts": 1778150598
 }

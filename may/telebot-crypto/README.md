@@ -31,8 +31,10 @@ cp .env.example .env
 Edit `.env` with your values.
 
 Notes:
-- `COINGECKO_IDS` must be **CoinGecko coin ids** (not symbols). `bitcoin` and `dogecoin` are correct.
-- If `bio` shows `(not found)`, replace it with the correct CoinGecko id for your BIO token.
+- This bot now uses **Binance public API** (no key) to fetch prices.
+- `COINS` (or legacy `COINGECKO_IDS`) values are mapped to Binance symbols by appending `USDT` (e.g. `BTC` → `BTCUSDT`).
+- For common names, `bitcoin` → `BTC`, `dogecoin` → `DOGE`.
+- If `BIOUSDT` is not listed on Binance, `BIO` will show `(not found)` — in that case tell me which BIO you mean (exchange + pair) and I’ll map it.
 
 ### 4) Run
 
