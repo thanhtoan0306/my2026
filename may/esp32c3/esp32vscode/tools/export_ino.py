@@ -27,21 +27,36 @@ def _strip_local_includes(text: str) -> str:
     return text
 
 
+def _escape_raw_string_delimiter(html: str) -> str:
+    # Our chosen raw-string delimiter is HTML ... HTML. If the page contains )HTML",
+    # it would terminate early. Rare, but make it safe.
+    return html.replace(')HTML"', ')H_T_M_L"')
+
+
+def _emit_embedded_html(page_html: str) -> str:
+    page_html = _escape_raw_string_delimiter(page_html.rstrip("\n"))
+    return (
+        "static const char kPageHtml[] PROGMEM = R\"HTML(\n"
+        + page_html
+        + "\n)HTML\";\n"
+    )
+
+
 def main() -> int:
     DIST.mkdir(parents=True, exist_ok=True)
 
     parts: list[tuple[str, str]] = []
 
     config_h = SRC / "config.h"
-    web_ui_h = SRC / "web_ui.h"
+    page_html = SRC / "page.html"
     sketch_ino = SRC / "sketch.ino"
 
-    for p in (config_h, web_ui_h, sketch_ino):
+    for p in (config_h, page_html, sketch_ino):
         if not p.exists():
             raise SystemExit(f"Missing required file: {p}")
 
     parts.append(("config.h", _strip_pragma_once(_read(config_h)).strip() + "\n"))
-    parts.append(("web_ui.h", _strip_pragma_once(_read(web_ui_h)).strip() + "\n"))
+    parts.append(("page.html (embedded)", _emit_embedded_html(_read(page_html)).strip() + "\n"))
     parts.append(("sketch.ino", _strip_local_includes(_read(sketch_ino)).strip() + "\n"))
 
     out = []

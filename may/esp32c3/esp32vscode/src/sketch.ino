@@ -3,7 +3,9 @@
 #include <Wire.h>
 
 #include "config.h"
-#include "web_ui.h"
+
+// Provided by the exporter (embedded from `src/page.html`)
+extern const char kPageHtml[] PROGMEM;
 
 // ---- OLED Object ----
 U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
@@ -68,16 +70,8 @@ static void writePage(WiFiClient& client) {
 
   // Stream HTML (small page; String ops are acceptable here)
   String html = FPSTR(kPageHtml);
-  html.replace(
-      "%LED_BLOCK%",
-      "<p>LED Speed: " + String(ledDelay) + "ms</p>"
-      "<input type='range' min='50' max='2000' value='" + String(ledDelay) +
-          "' class='s' onchange='window.location.href=\"/?led=\"+this.value'>");
-  html.replace(
-      "%OLED_BLOCK%",
-      "<p>OLED Speed: " + String(oledDelay) + "ms</p>"
-      "<input type='range' min='50' max='2000' value='" + String(oledDelay) +
-          "' class='s' onchange='window.location.href=\"/?oled=\"+this.value'>");
+  html.replace("%LED_DELAY%", String(ledDelay));
+  html.replace("%OLED_DELAY%", String(oledDelay));
 
   client.print(html);
 }
