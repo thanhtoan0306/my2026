@@ -518,9 +518,14 @@
 
     document.getElementById("testDing").addEventListener("click", () => {
       enableSound().then((ok) => {
-        if (!ok) return;
-        playDings(DINGS_PER_200, true);
+        if (ok) playDings(DINGS_PER_200, true);
       });
+      fetch("/api/telegram/test-ding")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.error) console.warn("Telegram:", d.error);
+        })
+        .catch((e) => console.warn("Telegram:", e));
     });
 
     loadDingToggles();

@@ -1,5 +1,6 @@
 # Python venv
 may/exchangeauto/.venv/
+may/exchangeauto/.env
 
 # gmailUi secrets
 may/gmailUi/token.json
