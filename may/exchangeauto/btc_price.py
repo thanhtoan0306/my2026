@@ -29,6 +29,24 @@ def fetch_ticker(inst_id: str = INST_ID) -> dict[str, Any]:
     }
 
 
+def fetch_candles(
+    inst_id: str = INST_ID, bar: str = "5m", limit: int = 48
+) -> dict[str, Any]:
+    api = MarketData.MarketAPI(flag=FLAG)
+    result = api.get_candlesticks(
+        instId=inst_id, bar=bar, limit=str(limit)
+    )
+
+    if result.get("code") != "0":
+        raise RuntimeError(result.get("msg") or str(result))
+
+    points = [
+        {"ts": int(c[0]), "close": float(c[4])}
+        for c in reversed(result["data"])
+    ]
+    return {"instId": inst_id, "bar": bar, "points": points}
+
+
 def main() -> None:
     try:
         data = fetch_ticker()
