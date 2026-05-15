@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BTC / USDT · OKX</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #f7931a;
+      --green: #3fb950;
+      --red: #f85149;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "SF Mono", "Menlo", "Consolas", monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    main {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+    }
+    .pair {
+      font-size: 0.85rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .price {
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin: 0.5rem 0 1.5rem;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    .price.loading { color: var(--muted); font-size: 1.25rem; }
+    dl {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem 1rem;
+    }
+    dt { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; }
+    dd { font-size: 1rem; font-variant-numeric: tabular-nums; }
+    .range-bar {
+      grid-column: 1 / -1;
+      margin-top: 0.5rem;
+    }
+    .range-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      margin: 0.5rem 0 0.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .range-fill {
+      position: absolute;
+      top: 0; bottom: 0;
+      background: linear-gradient(90deg, var(--red), var(--accent), var(--green));
+      opacity: 0.6;
+    }
+    .range-marker {
+      position: absolute;
+      top: -2px;
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      transform: translateX(-50%);
+      box-shadow: 0 0 6px var(--accent);
+    }
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    footer {
+      margin-top: 1.5rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .error {
+      color: var(--red);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="pair">BTC / USDT · OKX spot</p>
+    <p class="price loading" id="last">Loading…</p>
+    <dl>
+      <div>
+        <dt>Bid</dt>
+        <dd id="bid">—</dd>
+      </div>
+      <div>
+        <dt>Ask</dt>
+        <dd id="ask">—</dd>
+      </div>
+      <div class="range-bar">
+        <dt>24h range</dt>
+        <dd>
+          <div class="range-track">
+            <div class="range-fill" id="rangeFill"></div>
+            <div class="range-marker" id="rangeMarker"></div>
+          </div>
+          <div class="range-labels">
+            <span id="low24">—</span>
+            <span id="high24">—</span>
+          </div>
+        </dd>
+      </div>
+    </dl>
+    <p class="error" id="error" hidden></p>
+    <footer id="updated">Refreshing every 5s</footer>
+  </main>
+  <script>
+    const fmt = (n) =>
+      n == null ? "—" : "$" + n.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+    function setRange(last, low, high) {
+      const pct = high > low ? ((last - low) / (high - low)) * 100 : 50;
+      document.getElementById("rangeMarker").style.left = pct + "%";
+      document.getElementById("rangeFill").style.width = pct + "%";
+    }
+
+    async function refresh() {
+      const errEl = document.getElementById("error");
+      errEl.hidden = true;
+      try {
+        const res = await fetch("/api/ticker");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.statusText);
+
+        document.getElementById("last").textContent = fmt(data.last);
+        document.getElementById("last").classList.remove("loading");
+        document.getElementById("bid").textContent = fmt(data.bid);
+        document.getElementById("ask").textContent = fmt(data.ask);
+        document.getElementById("low24").textContent = fmt(data.low24h);
+        document.getElementById("high24").textContent = fmt(data.high24h);
+        setRange(data.last, data.low24h, data.high24h);
+
+        const ts = data.ts ? new Date(Number(data.ts)) : new Date();
+        document.getElementById("updated").textContent =
+          "Updated " + ts.toLocaleTimeString();
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.hidden = false;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>
