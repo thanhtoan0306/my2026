@@ -89,8 +89,25 @@
       font-size: 0.8rem;
       color: var(--muted);
     }
+    .test-ding {
+      display: block;
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.6rem 1rem;
+      font: inherit;
+      font-size: 0.8rem;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .test-ding:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
     footer {
-      margin-top: 1.5rem;
+      margin-top: 0.75rem;
       font-size: 0.7rem;
       color: var(--muted);
       text-align: center;
@@ -99,6 +116,11 @@
       color: var(--red);
       font-size: 0.9rem;
       margin-top: 0.5rem;
+    }
+    .price.ding-up { animation: ding 0.35s ease; color: var(--green); }
+    .price.ding-down { animation: ding 0.35s ease; color: var(--red); }
+    @keyframes ding {
+      50% { transform: scale(1.04); filter: brightness(1.25); }
     }
   </style>
 </head>
@@ -130,14 +152,107 @@
       </div>
     </dl>
     <p class="error" id="error" hidden></p>
-    <footer id="updated">Refreshing every 5s</footer>
+    <button type="button" class="test-ding" id="testDing">Test ding</button>
+    <footer id="updated">Refreshing every 2s · $200 = 2 dings · $1000 = 10 dings</footer>
   </main>
   <script>
+    let lastTwoHundred = null;
+    let lastThousand = null;
+    let audioCtx = null;
+    let soundReady = false;
+
+    const DING_GAP_MS = 220;
+    const DINGS_PER_200 = 2;
+    const DINGS_PER_THOUSAND = 10;
+
     const fmt = (n) =>
       n == null ? "—" : "$" + n.toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
+
+    const twoHundredBucket = (price) => Math.floor(price / 200);
+    const thousandBucket = (price) => Math.floor(price / 1000);
+
+    function getAudio() {
+      if (!audioCtx) audioCtx = new AudioContext();
+      return audioCtx;
+    }
+
+    function enableSound() {
+      const ctx = getAudio();
+      const resume = ctx.state === "suspended" ? ctx.resume() : Promise.resolve();
+      return resume.then(() => {
+        soundReady = ctx.state === "running";
+        return soundReady;
+      });
+    }
+
+    function flashPrice(up) {
+      const el = document.getElementById("last");
+      el.classList.remove("ding-up", "ding-down");
+      void el.offsetWidth;
+      el.classList.add(up ? "ding-up" : "ding-down");
+      setTimeout(() => el.classList.remove("ding-up", "ding-down"), 400);
+    }
+
+    function playDingAt(up, offsetMs = 0) {
+      if (!soundReady) return;
+      const ctx = getAudio();
+      const t0 = ctx.currentTime + offsetMs / 1000;
+      const base = up ? 1760 : 1175;
+
+      const partials = [
+        { ratio: 1, amp: 1 },
+        { ratio: 2, amp: 0.6 },
+        { ratio: 2.76, amp: 0.38 },
+        { ratio: 3.52, amp: 0.24 },
+        { ratio: 5.4, amp: 0.14 },
+      ];
+
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.0001, t0);
+      master.gain.exponentialRampToValueAtTime(0.72, t0 + 0.012);
+      master.gain.exponentialRampToValueAtTime(0.001, t0 + 0.95);
+      master.connect(ctx.destination);
+
+      const stopAt = t0 + 1;
+      for (const p of partials) {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = base * p.ratio;
+        g.gain.value = p.amp;
+        osc.connect(g);
+        g.connect(master);
+        osc.start(t0);
+        osc.stop(stopAt);
+      }
+    }
+
+    function playDings(count, up) {
+      if (!soundReady || count < 1) return;
+      for (let i = 0; i < count; i++) {
+        playDingAt(up, i * DING_GAP_MS);
+      }
+      flashPrice(up);
+    }
+
+    function checkBoundaryChange(price) {
+      const twoHundred = twoHundredBucket(price);
+      const thousand = thousandBucket(price);
+
+      if (lastThousand !== null && thousand !== lastThousand) {
+        const steps = Math.abs(thousand - lastThousand);
+        playDings(steps * DINGS_PER_THOUSAND, thousand > lastThousand);
+      } else if (lastTwoHundred !== null && twoHundred !== lastTwoHundred) {
+        const steps = Math.abs(twoHundred - lastTwoHundred);
+        playDings(steps * DINGS_PER_200, twoHundred > lastTwoHundred);
+      }
+
+      lastTwoHundred = twoHundred;
+      lastThousand = thousand;
+    }
 
     function setRange(last, low, high) {
       const pct = high > low ? ((last - low) / (high - low)) * 100 : 50;
@@ -153,8 +268,10 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || res.statusText);
 
-        document.getElementById("last").textContent = fmt(data.last);
-        document.getElementById("last").classList.remove("loading");
+        const lastEl = document.getElementById("last");
+        lastEl.textContent = fmt(data.last);
+        lastEl.classList.remove("loading");
+        checkBoundaryChange(data.last);
         document.getElementById("bid").textContent = fmt(data.bid);
         document.getElementById("ask").textContent = fmt(data.ask);
         document.getElementById("low24").textContent = fmt(data.low24h);
@@ -170,8 +287,15 @@
       }
     }
 
+    document.getElementById("testDing").addEventListener("click", () => {
+      enableSound().then((ok) => {
+        if (!ok) return;
+        playDings(DINGS_PER_200, true);
+      });
+    });
+
     refresh();
-    setInterval(refresh, 5000);
+    setInterval(refresh, 2000);
   </script>
 </body>
 </html>
