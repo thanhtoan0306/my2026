@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BTC / USDT · OKX</title>
-  <style>
+  <title>— USDT</title>
+gggggg  <style>
     :root {
       --bg: #0d1117;
       --card: #161b22;
@@ -252,9 +252,9 @@
     <p class="error" id="error" hidden></p>
     <div class="ding-toggles">
       <label class="toggle-row">
-        <input type="checkbox" id="ding200" checked>
+        <input type="checkbox" id="ding100" checked>
         <span class="toggle-switch" aria-hidden="true"></span>
-        <span class="toggle-label">$200 boundary · 2 dings</span>
+        <span class="toggle-label">$100 boundary · 2 dings</span>
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="ding1000" checked>
@@ -263,16 +263,16 @@
       </label>
     </div>
     <button type="button" class="test-ding" id="testDing">Test ding</button>
-    <footer><span id="status">Loading…</span> · Bell v2 · $200/$1000 dings</footer>
+    <footer><span id="status">Loading…</span> · Bell v2 · $100/$1000 dings</footer>
   </main>
   <script>
-    let lastTwoHundred = null;
+    let lastHundred = null;
     let lastThousand = null;
     let audioCtx = null;
     let soundReady = false;
 
     const DING_GAP_MS = 220;
-    const DINGS_PER_200 = 2;
+    const DINGS_PER_100 = 2;
     const DINGS_PER_THOUSAND = 10;
 
     const fmt = (n) =>
@@ -281,7 +281,12 @@
         maximumFractionDigits: 2,
       });
 
-    const twoHundredBucket = (price) => Math.floor(price / 200);
+    function updateTitle(price) {
+      document.title =
+        Math.round(price).toLocaleString("en-US") + " USDT";
+    }
+
+    const hundredBucket = (price) => Math.floor(price / 100);
     const thousandBucket = (price) => Math.floor(price / 1000);
 
     function getAudio() {
@@ -350,8 +355,8 @@
       flashPrice(up);
     }
 
-    function isDing200On() {
-      return document.getElementById("ding200").checked;
+    function isDing100On() {
+      return document.getElementById("ding100").checked;
     }
 
     function isDing1000On() {
@@ -359,19 +364,26 @@
     }
 
     function saveDingToggles() {
-      localStorage.setItem("ding200", isDing200On());
+      localStorage.setItem("ding100", isDing100On());
       localStorage.setItem("ding1000", isDing1000On());
     }
 
     function loadDingToggles() {
-      const d200 = localStorage.getItem("ding200");
+      const d100 = localStorage.getItem("ding100");
       const d1000 = localStorage.getItem("ding1000");
-      if (d200 !== null) document.getElementById("ding200").checked = d200 === "true";
+      if (d100 !== null) {
+        document.getElementById("ding100").checked = d100 === "true";
+      } else {
+        const legacy = localStorage.getItem("ding200");
+        if (legacy !== null) {
+          document.getElementById("ding100").checked = legacy === "true";
+        }
+      }
       if (d1000 !== null) document.getElementById("ding1000").checked = d1000 === "true";
     }
 
     function checkBoundaryChange(price) {
-      const twoHundred = twoHundredBucket(price);
+      const hundred = hundredBucket(price);
       const thousand = thousandBucket(price);
 
       if (
@@ -382,15 +394,15 @@
         const steps = Math.abs(thousand - lastThousand);
         playDings(steps * DINGS_PER_THOUSAND, thousand > lastThousand);
       } else if (
-        isDing200On() &&
-        lastTwoHundred !== null &&
-        twoHundred !== lastTwoHundred
+        isDing100On() &&
+        lastHundred !== null &&
+        hundred !== lastHundred
       ) {
-        const steps = Math.abs(twoHundred - lastTwoHundred);
-        playDings(steps * DINGS_PER_200, twoHundred > lastTwoHundred);
+        const steps = Math.abs(hundred - lastHundred);
+        playDings(steps * DINGS_PER_100, hundred > lastHundred);
       }
 
-      lastTwoHundred = twoHundred;
+      lastHundred = hundred;
       lastThousand = thousand;
     }
 
@@ -500,6 +512,7 @@
         const lastEl = document.getElementById("last");
         lastEl.textContent = fmt(data.last);
         lastEl.classList.remove("loading");
+        updateTitle(data.last);
         checkBoundaryChange(data.last);
         document.getElementById("bid").textContent = fmt(data.bid);
         document.getElementById("ask").textContent = fmt(data.ask);
@@ -518,7 +531,7 @@
 
     document.getElementById("testDing").addEventListener("click", () => {
       enableSound().then((ok) => {
-        if (ok) playDings(DINGS_PER_200, true);
+        if (ok) playDings(DINGS_PER_100, true);
       });
       fetch("/api/telegram/test-ding")
         .then((r) => r.json())
@@ -529,7 +542,7 @@
     });
 
     loadDingToggles();
-    document.getElementById("ding200").addEventListener("change", saveDingToggles);
+    document.getElementById("ding100").addEventListener("change", saveDingToggles);
     document.getElementById("ding1000").addEventListener("change", saveDingToggles);
 
     refresh();
