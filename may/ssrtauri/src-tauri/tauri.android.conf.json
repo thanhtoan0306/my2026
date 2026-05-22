@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SSRTauri",
+  "version": "1.0.0",
+  "identifier": "com.my2026.ssrtauri",
+  "app": {
+    "windows": []
+  },
+  "bundle": {
+    "android": {
+      "minSdkVersion": 24
+    }
+  }
+}
