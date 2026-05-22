@@ -1,0 +1,124 @@
+:root {
+    color-scheme: dark;
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 32px;
+    background: radial-gradient(circle at top, #161b22 0%, #0b0f14 45%, #06090c 100%);
+}
+
+.page-shell {
+    width: min(980px, 100%);
+}
+
+header h1 {
+    margin: 0 0 8px;
+    font-size: clamp(2rem, 3vw, 2.8rem);
+}
+
+header p {
+    margin: 0 0 28px;
+    color: #8b949e;
+}
+
+.steps {
+    display: grid;
+    gap: 20px;
+}
+
+.step-card {
+    padding: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 18px;
+    background: rgba(16, 23, 32, 0.92);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+}
+
+.step-card h2 {
+    margin-top: 0;
+    color: #f0f6fc;
+}
+
+label {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: #8b949e;
+}
+
+input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: #020414;
+    color: #c9d1d9;
+    font-size: 1rem;
+}
+
+.terminal-card,
+.output-card {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    background: #01080f;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.terminal-card pre,
+.output-card pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.98rem;
+    line-height: 1.6;
+    background: #0b1220;
+    padding: 16px;
+    border-radius: 14px;
+    color: #c9d1d9;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.copy-btn,
+.run-btn {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.copy-btn {
+    background: #238636;
+    color: white;
+}
+
+.run-btn {
+    background: #0f62fe;
+    color: white;
+}
+
+.hint {
+    margin: 0;
+    color: #8b949e;
+}
+
+@media (min-width: 768px) {
+    .terminal-card {
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+    }
+
+    .terminal-card pre {
+        margin: 0;
+    }
+}

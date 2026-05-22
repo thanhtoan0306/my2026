@@ -1,0 +1,95 @@
+{{define "status_bar"}}
+<div id="status-bar" class="status-bar">
+    <div>Trạng thái:
+        <span class="status-dot {{if .Connected}}connected{{end}}"></span>
+        <span>{{.StatusText}}</span>
+        {{if .Connected}}<span class="muted">· {{.EnvLabel}} · WS → HTMX</span>{{end}}
+    </div>
+    <div>Vị thế đang mở: <span style="color: var(--text-main); font-weight:bold;">{{.PosCount}}</span></div>
+</div>
+{{end}}
+
+{{define "positions_tbody"}}
+<tbody id="positions-tbody">
+    {{if .ShowEmptyRow}}
+    <tr>
+        <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+            {{if .Connected}}Không có vị thế nào đang mở.{{else}}Đang chờ kết nối từ ~/okx-ssr/.env{{end}}
+        </td>
+    </tr>
+    {{else}}
+    {{range .Positions}}
+    <tr>
+        <td>
+            <div class="symbol-name">{{.DisplayName}}</div>
+            <div><span class="lever-badge">{{.Lever}}x</span></div>
+        </td>
+        <td class="{{pnlClass .}}" style="font-weight: 600;">
+            {{.UplUSDT}}
+            <div class="muted">({{.UplRatioPct}}%)</div>
+        </td>
+        <td>
+            <form class="inline"
+                  hx-post="/close"
+                  hx-target="#positions-tbody"
+                  hx-swap="outerHTML"
+                  hx-confirm="Bạn có chắc chắn muốn đóng ngay vị thế thị trường cho cặp {{.InstID}}?">
+                <input type="hidden" name="instId" value="{{.InstID}}">
+                <input type="hidden" name="mgnMode" value="{{.MgnMode}}">
+                <button type="submit" class="btn-close">Close</button>
+            </form>
+        </td>
+        <td style="font-weight: 500;">{{.BreakevenPx}}</td>
+        <td class="pos-positive" style="font-weight: 500;">{{.SizeUSDT}}</td>
+        <td style="font-weight: 500;">{{.MarkPrice}}</td>
+        <td style="font-weight: 500;">{{.EntryPrice}}</td>
+        <td>
+            <div>{{.MarginUSDT}}</div>
+            <div class="muted">{{.MgnMode}}</div>
+        </td>
+        <td><span class="btn btn-secondary" style="display:inline-block;padding:4px 8px;font-size:12px;">+ Add</span></td>
+    </tr>
+    {{end}}
+    {{end}}
+</tbody>
+{{end}}
+
+{{define "log_console"}}
+<div id="log-console" class="log-console">
+    {{range .Logs}}
+    <div class="log-line">{{.}}</div>
+    {{else}}
+    <div class="log-line">Sẵn sàng kết nối...</div>
+    {{end}}
+</div>
+{{end}}
+
+{{define "live_panel"}}
+{{template "status_bar" .}}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Floating PnL</th>
+                <th>Standard close</th>
+                <th>Breakeven price</th>
+                <th>Size</th>
+                <th>Mark price</th>
+                <th>Entry price</th>
+                <th>Margin</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        {{template "positions_tbody" .}}
+    </table>
+</div>
+<div class="logs-section">
+    <h3>Log hệ thống (server)</h3>
+    {{template "log_console" .}}
+</div>
+{{end}}
+
+{{define "fragment_live"}}
+{{template "live_panel" .}}
+{{end}}

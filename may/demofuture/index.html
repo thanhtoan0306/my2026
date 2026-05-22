@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OKX Futures Trading - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header .badge {
+            display: inline-block;
+            background: #f0b90b;
+            color: #1a1a2e;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            color: #8b8b9a;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: #8b8b9a;
+            margin-bottom: 8px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: #f0b90b;
+        }
+
+        .form-group input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .row .form-group {
+            flex: 1;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-long {
+            background: #0ecb81;
+            color: #fff;
+        }
+
+        .btn-long:hover:not(:disabled) {
+            background: #0ab46d;
+        }
+
+        .btn-short {
+            background: #f6465d;
+            color: #fff;
+        }
+
+        .btn-short:hover:not(:disabled) {
+            background: #d6374d;
+        }
+
+        .btn-close {
+            background: #f0b90b;
+            color: #1a1a2e;
+        }
+
+        .btn-close:hover:not(:disabled) {
+            background: #e0a900;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #8b8b9a;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .stat-value.positive {
+            color: #0ecb81;
+        }
+
+        .stat-value.negative {
+            color: #f6465d;
+        }
+
+        .position-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .position-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .position-symbol {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .position-side {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .position-side.long {
+            background: rgba(14, 203, 129, 0.2);
+            color: #0ecb81;
+        }
+
+        .position-side.short {
+            background: rgba(246, 70, 93, 0.2);
+            color: #f6465d;
+        }
+
+        .position-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .position-detail {
+            text-align: center;
+        }
+
+        .position-detail-label {
+            color: #8b8b9a;
+            margin-bottom: 2px;
+        }
+
+        .position-detail-value {
+            font-weight: 500;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 24px;
+            color: #8b8b9a;
+            font-size: 14px;
+        }
+
+        .tp-info {
+            background: rgba(14, 203, 129, 0.1);
+            border: 1px solid rgba(14, 203, 129, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tp-info-icon {
+            width: 20px;
+            height: 20px;
+            background: #0ecb81;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .tp-info-text {
+            font-size: 13px;
+        }
+
+        .api-config {
+            margin-bottom: 16px;
+        }
+
+        .toggle-config {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 8px 0;
+        }
+
+        .toggle-config span {
+            font-size: 13px;
+            color: #8b8b9a;
+        }
+
+        .chevron {
+            transition: transform 0.2s;
+        }
+
+        .chevron.open {
+            transform: rotate(180deg);
+        }
+
+        .config-panel {
+            display: none;
+            margin-top: 12px;
+        }
+
+        .config-panel.open {
+            display: block;
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 46, 0.95);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #0ecb81;
+        }
+
+        .status-dot.error {
+            background: #f6465d;
+        }
+
+        .status-dot.warning {
+            background: #f0b90b;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #0ecb81;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transform: translateX(120%);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: #f6465d;
+        }
+
+        .toast.warning {
+            background: #f0b90b;
+            color: #1a1a2e;
+        }
+
+        .actions-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .actions-row .btn {
+            flex: 1;
+            padding: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>OKX Futures</h1>
+            <span class="badge">DEMO MODE</span>
+        </div>
+
+        <div class="card">
+            <div class="toggle-config" onclick="toggleConfig()">
+                <span>API Configuration</span>
+                <span class="chevron" id="configChevron">▼</span>
+            </div>
+            <div class="config-panel" id="configPanel">
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="text" id="apiKey" placeholder="Enter your OKX API Key">
+                </div>
+                <div class="form-group">
+                    <label>Secret Key</label>
+                    <input type="password" id="secretKey" placeholder="Enter your Secret Key">
+                </div>
+                <div class="form-group">
+                    <label>Passphrase</label>
+                    <input type="password" id="passphrase" placeholder="Enter your Passphrase">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="demoTrading" checked> Demo Trading (Simulated)
+                    </label>
+                </div>
+                <button class="btn btn-outline" onclick="saveConfig()">Save Configuration</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Quick Trade - 1 USDT</div>
+            
+            <div class="tp-info">
+                <div class="tp-info-icon">%</div>
+                <div class="tp-info-text">Auto Take Profit set at <strong>+1%</strong></div>
+            </div>
+
+            <div class="form-group">
+                <label>Trading Pair</label>
+                <select id="symbol">
+                    <option value="BTC-USDT-SWAP">BTC-USDT Perpetual</option>
+                    <option value="ETH-USDT-SWAP">ETH-USDT Perpetual</option>
+                    <option value="SOL-USDT-SWAP">SOL-USDT Perpetual</option>
+                    <option value="DOGE-USDT-SWAP">DOGE-USDT Perpetual</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Position Size (USDT)</label>
+                <input type="number" id="positionSize" value="1" min="1" step="1">
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label>Leverage</label>
+                    <select id="leverage">
+                        <option value="1">1x</option>
+                        <option value="3">3x</option>
+                        <option value="5" selected>5x</option>
+                        <option value="10">10x</option>
+                        <option value="20">20x</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Take Profit %</label>
+                    <input type="number" id="tpPercent" value="1" min="0.1" step="0.1">
+                </div>
+            </div>
+
+            <div class="actions-row">
+                <button class="btn btn-long" onclick="openPosition('long')" id="btnLong">LONG</button>
+                <button class="btn btn-short" onclick="openPosition('short')" id="btnShort">SHORT</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Market Overview</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">BTC Price</div>
+                    <div class="stat-value" id="btcPrice">Loading...</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">ETH Price</div>
+                    <div class="stat-value" id="ethPrice">Loading...</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">24h Change</div>
+                    <div class="stat-value positive" id="btcChange">+0.00%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Funding Rate</div>
+                    <div class="stat-value" id="fundingRate">0.0000%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                Active Positions
+                <span id="positionCount" style="float: right; color: #8b8b9a;">(0)</span>
+            </div>
+            <div id="positionsList">
+                <div class="empty-state">No open positions</div>
+            </div>
+            <button class="btn btn-close" onclick="closeAllPositions()" id="btnCloseAll" style="margin-top: 12px;" disabled>Close All Positions</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Trading Stats</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Total Trades</div>
+                    <div class="stat-value" id="totalTrades">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Win Rate</div>
+                    <div class="stat-value" id="winRate">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total P&L</div>
+                    <div class="stat-value" id="totalPnL">0.00 USDT</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Fees Paid</div>
+                    <div class="stat-value" id="feesPaid">0.00 USDT</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="height: 60px;"></div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Disconnected</span>
+        </div>
+        <span id="connectionType">Demo Mode</span>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // State management
+        let config = {
+            apiKey: '',
+            secretKey: '',
+            passphrase: '',
+            demoTrading: true
+        };
+
+        let positions = [];
+        let stats = {
+            totalTrades: 0,
+            wins: 0,
+            totalPnL: 0,
+            feesPaid: 0
+        };
+
+        let wsConnection = null;
+        let prices = {};
+
+        // Initialize
+        function init() {
+            loadConfig();
+            connectWebSocket();
+            updateStats();
+        }
+
+        // Toggle config panel
+        function toggleConfig() {
+            const panel = document.getElementById('configPanel');
+            const chevron = document.getElementById('configChevron');
+            panel.classList.toggle('open');
+            chevron.classList.toggle('open');
+        }
+
+        // Load config from localStorage
+        function loadConfig() {
+            const saved = localStorage.getItem('okxConfig');
+            if (saved) {
+                config = JSON.parse(saved);
+                document.getElementById('apiKey').value = config.apiKey || '';
+                document.getElementById('secretKey').value = config.secretKey || '';
+                document.getElementById('passphrase').value = config.passphrase || '';
+                document.getElementById('demoTrading').checked = config.demoTrading !== false;
+            }
+        }
+
+        // Save config
+        function saveConfig() {
+            config = {
+                apiKey: document.getElementById('apiKey').value,
+                secretKey: document.getElementById('secretKey').value,
+                passphrase: document.getElementById('passphrase').value,
+                demoTrading: document.getElementById('demoTrading').checked
+            };
+            localStorage.setItem('okxConfig', JSON.stringify(config));
+            showToast('Configuration saved', 'success');
+        }
+
+        // Connect to OKX WebSocket for prices
+        function connectWebSocket() {
+            try {
+                wsConnection = new WebSocket('wss://wspap.okx.com:8443/ws/v5/public?brokerId=9999');
+                
+                wsConnection.onopen = function() {
+                    updateStatus('connected', 'Connected');
+                    // Subscribe to ticker channels
+                    const subscribeMsg = {
+                        op: 'subscribe',
+                        args: [
+                            { channel: 'tickers', instId: 'BTC-USDT-SWAP' },
+                            { channel: 'tickers', instId: 'ETH-USDT-SWAP' }
+                        ]
+                    };
+                    wsConnection.send(JSON.stringify(subscribeMsg));
+                };
+
+                wsConnection.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    if (data.arg && data.data) {
+                        const ticker = data.data[0];
+                        if (ticker) {
+                            const instId = data.arg.instId;
+                            prices[instId] = {
+                                last: parseFloat(ticker.last),
+                                open24h: parseFloat(ticker.open24h),
+                                change: ((parseFloat(ticker.last) - parseFloat(ticker.open24h)) / parseFloat(ticker.open24h) * 100).toFixed(2)
+                            };
+                            updatePriceDisplay();
+                        }
+                    }
+                };
+
+                wsConnection.onerror = function() {
+                    updateStatus('error', 'Connection Error');
+                };
+
+                wsConnection.onclose = function() {
+                    updateStatus('warning', 'Disconnected');
+                    // Reconnect after 5 seconds
+                    setTimeout(connectWebSocket, 5000);
+                };
+            } catch (e) {
+                updateStatus('error', 'Connection Failed');
+                // Fallback: simulate prices
+                simulatePrices();
+            }
+        }
+
+        // Simulate prices if WebSocket fails
+        function simulatePrices() {
+            let btcBase = 67000;
+            let ethBase = 3500;
+            
+            setInterval(() => {
+                btcBase += (Math.random() - 0.5) * 100;
+                ethBase += (Math.random() - 0.5) * 10;
+                
+                prices['BTC-USDT-SWAP'] = {
+                    last: btcBase,
+                    open24h: btcBase * 0.98,
+                    change: ((btcBase - btcBase * 0.98) / (btcBase * 0.98) * 100).toFixed(2)
+                };
+                
+                prices['ETH-USDT-SWAP'] = {
+                    last: ethBase,
+                    open24h: ethBase * 0.985,
+                    change: ((ethBase - ethBase * 0.985) / (ethBase * 0.985) * 100).toFixed(2)
+                };
+                
+                updatePriceDisplay();
+            }, 3000);
+            
+            updateStatus('warning', 'Simulated Data');
+        }
+
+        // Update price display
+        function updatePriceDisplay() {
+            if (prices['BTC-USDT-SWAP']) {
+                document.getElementById('btcPrice').textContent = prices['BTC-USDT-SWAP'].last.toFixed(2);
+                const changeEl = document.getElementById('btcChange');
+                changeEl.textContent = (prices['BTC-USDT-SWAP'].change > 0 ? '+' : '') + prices['BTC-USDT-SWAP'].change + '%';
+                changeEl.className = 'stat-value ' + (prices['BTC-USDT-SWAP'].change > 0 ? 'positive' : 'negative');
+            }
+            if (prices['ETH-USDT-SWAP']) {
+                document.getElementById('ethPrice').textContent = prices['ETH-USDT-SWAP'].last.toFixed(2);
+            }
+            
+            // Update positions P&L
+            updatePositionsPnL();
+        }
+
+        // Open position
+        function openPosition(side) {
+            const symbol = document.getElementById('symbol').value;
+            const size = parseFloat(document.getElementById('positionSize').value);
+            const leverage = parseInt(document.getElementById('leverage').value);
+            const tpPercent = parseFloat(document.getElementById('tpPercent').value);
+            
+            if (!size || size < 1) {
+                showToast('Minimum position size is 1 USDT', 'error');
+                return;
+            }
+
+            const currentPrice = prices[symbol]?.last || (symbol.includes('BTC') ? 67000 : symbol.includes('ETH') ? 3500 : 150);
+            
+            const position = {
+                id: Date.now(),
+                symbol: symbol,
+                side: side,
+                size: size,
+                leverage: leverage,
+                entryPrice: currentPrice,
+                tpPrice: side === 'long' 
+                    ? currentPrice * (1 + tpPercent / 100)
+                    : currentPrice * (1 - tpPercent / 100),
+                tpPercent: tpPercent,
+                markPrice: currentPrice,
+                pnl: 0,
+                pnlPercent: 0,
+                status: 'open'
+            };
+
+            positions.push(position);
+            stats.totalTrades++;
+            
+            showToast(`${side.toUpperCase()} position opened: ${size} USDT @ ${leverage}x (TP: ${tpPercent}%)`, 'success');
+            
+            renderPositions();
+            updateStats();
+            
+            // Check TP periodically
+            startTPCheck(position);
+        }
+
+        // Check and execute take profit
+        function startTPCheck(position) {
+            const checkInterval = setInterval(() => {
+                if (position.status !== 'open') {
+                    clearInterval(checkInterval);
+                    return;
+                }
+
+                const currentPrice = prices[position.symbol]?.last || position.markPrice;
+                
+                let tpHit = false;
+                if (position.side === 'long' && currentPrice >= position.tpPrice) {
+                    tpHit = true;
+                } else if (position.side === 'short' && currentPrice <= position.tpPrice) {
+                    tpHit = true;
+                }
+
+                if (tpHit) {
+                    closePosition(position.id, true);
+                    clearInterval(checkInterval);
+                }
+            }, 1000);
+        }
+
+        // Close position
+        function closePosition(id, isTP = false) {
+            const index = positions.findIndex(p => p.id === id);
+            if (index === -1) return;
+
+            const position = positions[index];
+            const currentPrice = prices[position.symbol]?.last || position.markPrice;
+            
+            // Calculate P&L
+            let pnl = 0;
+            if (position.side === 'long') {
+                pnl = (currentPrice - position.entryPrice) / position.entryPrice * position.size * position.leverage;
+            } else {
+                pnl = (position.entryPrice - currentPrice) / position.entryPrice * position.size * position.leverage;
+            }
+            
+            const fee = position.size * 0.0005; // 0.05% fee
+            pnl -= fee;
+            
+            stats.totalPnL += pnl;
+            stats.feesPaid += fee;
+            if (pnl > 0) stats.wins++;
+            
+            position.status = 'closed';
+            position.closePrice = currentPrice;
+            position.pnl = pnl;
+            position.closedAt = Date.now();
+            
+            positions.splice(index, 1);
+            
+            const msg = isTP 
+                ? `Take Profit executed! P&L: ${pnl > 0 ? '+' : ''}${pnl.toFixed(2)} USDT`
+                : `Position closed. P&L: ${pnl > 0 ? '+' : ''}${pnl.toFixed(2)} USDT`;
+            
+            showToast(msg, pnl > 0 ? 'success' : 'warning');
+            
+            renderPositions();
+            updateStats();
+        }
+
+        // Close all positions
+        function closeAllPositions() {
+            if (positions.length === 0) return;
+            
+            const count = positions.length;
+            
+            // Close all positions
+            while (positions.length > 0) {
+                closePosition(positions[0].id, false);
+            }
+            
+            showToast(`All ${count} positions closed`, 'success');
+        }
+
+        // Update positions P&L
+        function updatePositionsPnL() {
+            positions.forEach(position => {
+                const currentPrice = prices[position.symbol]?.last || position.markPrice;
+                position.markPrice = currentPrice;
+                
+                if (position.side === 'long') {
+                    position.pnl = (currentPrice - position.entryPrice) / position.entryPrice * position.size * position.leverage;
+                } else {
+                    position.pnl = (position.entryPrice - currentPrice) / position.entryPrice * position.size * position.leverage;
+                }
+                
+                position.pnlPercent = (position.pnl / position.size * 100).toFixed(2);
+            });
+            
+            renderPositions();
+        }
+
+        // Render positions list
+        function renderPositions() {
+            const list = document.getElementById('positionsList');
+            const count = document.getElementById('positionCount');
+            const btnCloseAll = document.getElementById('btnCloseAll');
+            
+            count.textContent = `(${positions.length})`;
+            btnCloseAll.disabled = positions.length === 0;
+            
+            if (positions.length === 0) {
+                list.innerHTML = '<div class="empty-state">No open positions</div>';
+                return;
+            }
+            
+            list.innerHTML = positions.map(p => `
+                <div class="position-item">
+                    <div class="position-header">
+                        <span class="position-symbol">${p.symbol.replace('-USDT-SWAP', '')}</span>
+                        <span class="position-side ${p.side}">${p.side.toUpperCase()} ${p.leverage}x</span>
+                    </div>
+                    <div class="position-details">
+                        <div class="position-detail">
+                            <div class="position-detail-label">Entry</div>
+                            <div class="position-detail-value">${p.entryPrice.toFixed(2)}</div>
+                        </div>
+                        <div class="position-detail">
+                            <div class="position-detail-label">TP Target</div>
+                            <div class="position-detail-value" style="color: #0ecb81;">${p.tpPrice.toFixed(2)}</div>
+                        </div>
+                        <div class="position-detail">
+                            <div class="position-detail-label">P&L</div>
+                            <div class="position-detail-value ${p.pnl >= 0 ? 'positive' : 'negative'}">
+                                ${p.pnl >= 0 ? '+' : ''}${p.pnl.toFixed(2)} USDT
+                            </div>
+                        </div>
+                    </div>
+                    <div class="actions-row">
+                        <button class="btn btn-close" onclick="closePosition(${p.id})">Close Position</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update stats display
+        function updateStats() {
+            document.getElementById('totalTrades').textContent = stats.totalTrades;
+            document.getElementById('winRate').textContent = stats.totalTrades > 0 
+                ? Math.round(stats.wins / stats.totalTrades * 100) + '%' 
+                : '0%';
+            document.getElementById('totalPnL').textContent = (stats.totalPnL >= 0 ? '+' : '') + stats.totalPnL.toFixed(2) + ' USDT';
+            document.getElementById('totalPnL').className = 'stat-value ' + (stats.totalPnL >= 0 ? 'positive' : 'negative');
+            document.getElementById('feesPaid').textContent = stats.feesPaid.toFixed(2) + ' USDT';
+        }
+
+        // Update connection status
+        function updateStatus(type, text) {
+            const dot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            dot.className = 'status-dot' + (type === 'error' ? ' error' : type === 'warning' ? ' warning' : '');
+            statusText.textContent = text;
+            
+            document.getElementById('connectionType').textContent = config.demoTrading ? 'Demo Mode' : 'Live Trading';
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + (type === 'error' ? 'error' : type === 'warning' ? 'warning' : '');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize on load
+        window.onload = init;
+    </script>
+</body>
+</html>

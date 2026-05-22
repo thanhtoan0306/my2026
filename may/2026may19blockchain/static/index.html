@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ví Ethereum — Đăng nhập</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #627eea;
+      --accent-hover: #7b93f5;
+      --warn: #d29922;
+      --warn-bg: #3d2e00;
+      --danger: #f85149;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .app {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem 1.5rem;
+    }
+    .logo {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1rem;
+      display: block;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #627eea 0%, #8b5cf6 100%);
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 0.35rem;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+    .view { display: none; }
+    .view.active { display: block; }
+    .btn-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: none;
+      border-radius: 10px;
+      padding: 0.95rem 1.25rem;
+      transition: background 0.15s, transform 0.1s;
+    }
+    button:active { transform: scale(0.98); }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: #21262d;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      width: 100%;
+    }
+    .btn-ghost:hover { color: var(--text); }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    input[type="text"],
+    input[type="password"],
+    textarea {
+      width: 100%;
+      font: inherit;
+      font-family: "SF Mono", "Menlo", "Consolas", monospace;
+      font-size: 0.85rem;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      resize: vertical;
+    }
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .field { margin-bottom: 1rem; }
+    .warn-box {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+      color: #e3b341;
+      margin-bottom: 1rem;
+      line-height: 1.45;
+    }
+    .warn-box strong { display: block; margin-bottom: 0.25rem; }
+    .key-display {
+      min-height: 4.5rem;
+      word-break: break-all;
+    }
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      min-height: 1.2em;
+    }
+    /* Màn hình chính (placeholder Task 2) */
+    .dashboard-header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .dashboard-header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      background: #238636;
+      color: #fff;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      margin-top: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app" aria-live="polite">
+    <!-- VIEW: Chọn hành động -->
+    <section id="view-home" class="view active">
+      <div class="logo" aria-hidden="true"></div>
+      <h1>Ví Ethereum</h1>
+      <p class="subtitle">Tạo ví mới hoặc nhập ví đã có</p>
+      <div class="btn-row">
+        <button type="button" class="btn-primary" id="btn-create">
+          Tạo ví mới
+        </button>
+        <button type="button" class="btn-secondary" id="btn-import">
+          Nhập ví cũ
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW: Tạo ví — hiển thị Private Key -->
+    <section id="view-create" class="view">
+      <h1>Ví mới</h1>
+      <p class="subtitle">Lưu Private Key trước khi đăng nhập</p>
+      <div class="warn-box">
+        <strong>⚠ Cảnh báo bảo mật</strong>
+        Hãy lưu chuỗi này lại, mất là mất tiền. Không chia sẻ Private Key với bất kỳ ai.
+      </div>
+      <div class="field">
+        <label for="created-key">Private Key</label>
+        <textarea
+          id="created-key"
+          class="key-display"
+          readonly
+          rows="3"
+          placeholder="Nhấn «Tạo khóa» để sinh Private Key…"
+        ></textarea>
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn-secondary" id="btn-generate-key">
+          Tạo khóa
+        </button>
+        <button type="button" class="btn-primary" id="btn-login-from-create" disabled>
+          Đăng nhập vào Ví
+        </button>
+        <button type="button" class="btn-ghost" data-back="home">← Quay lại</button>
+      </div>
+    </section>
+
+    <!-- VIEW: Nhập ví cũ -->
+    <section id="view-import" class="view">
+      <h1>Nhập ví cũ</h1>
+      <p class="subtitle">Dán Private Key của bạn</p>
+      <div class="field">
+        <label for="import-key">Private Key</label>
+        <input
+          type="password"
+          id="import-key"
+          autocomplete="off"
+          placeholder="0x… hoặc chuỗi hex 64 ký tự"
+          spellcheck="false"
+        />
+        <p class="error-msg" id="import-error" role="alert"></p>
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn-primary" id="btn-login-from-import">
+          Đăng nhập vào Ví
+        </button>
+        <button type="button" class="btn-ghost" data-back="home">← Quay lại</button>
+      </div>
+    </section>
+
+    <!-- VIEW: Màn hình chính (placeholder — Task 2) -->
+    <section id="view-dashboard" class="view">
+      <div class="dashboard-header">
+        <h1>Ví của bạn</h1>
+        <p id="dashboard-address">—</p>
+        <span class="badge">Đã đăng nhập</span>
+      </div>
+      <p class="subtitle" style="margin-bottom: 1rem;">
+        Màn hình số dư &amp; gửi tiền sẽ được bổ sung ở Task 2.
+      </p>
+      <button type="button" class="btn-secondary" id="btn-logout" style="width: 100%;">
+        Đăng xuất
+      </button>
+    </section>
+  </div>
+
+  <script>
+    const views = {
+      home: document.getElementById("view-home"),
+      create: document.getElementById("view-create"),
+      import: document.getElementById("view-import"),
+      dashboard: document.getElementById("view-dashboard"),
+    };
+
+    const createdKeyEl = document.getElementById("created-key");
+    const importKeyEl = document.getElementById("import-key");
+    const importErrorEl = document.getElementById("import-error");
+    const loginFromCreateBtn = document.getElementById("btn-login-from-create");
+    const dashboardAddressEl = document.getElementById("dashboard-address");
+
+    let pendingPrivateKey = "";
+
+    function showView(name) {
+      Object.values(views).forEach((el) => el.classList.remove("active"));
+      views[name].classList.add("active");
+    }
+
+    function shortenAddress(addr) {
+      if (!addr || addr.length < 12) return addr || "—";
+      return addr.slice(0, 6) + "…" + addr.slice(-4);
+    }
+
+    function setLoginEnabled(hasKey) {
+      loginFromCreateBtn.disabled = !hasKey;
+    }
+
+    document.getElementById("btn-create").addEventListener("click", () => {
+      createdKeyEl.value = "";
+      pendingPrivateKey = "";
+      setLoginEnabled(false);
+      showView("create");
+    });
+
+    document.getElementById("btn-import").addEventListener("click", () => {
+      importKeyEl.value = "";
+      importErrorEl.textContent = "";
+      showView("import");
+    });
+
+    document.querySelectorAll("[data-back]").forEach((btn) => {
+      btn.addEventListener("click", () => showView(btn.dataset.back));
+    });
+
+    document.getElementById("btn-generate-key").addEventListener("click", () => {
+      // Placeholder: Task 1 Backend sẽ dùng ethers.Wallet.createRandom()
+      const hex = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      const key = "0x" + hex;
+      createdKeyEl.value = key;
+      pendingPrivateKey = key;
+      setLoginEnabled(true);
+    });
+
+    function goToDashboard(privateKey) {
+      pendingPrivateKey = privateKey.trim();
+      sessionStorage.setItem("wallet_private_key", pendingPrivateKey);
+      // Địa chỉ thật sẽ có sau khi gắn ethers; tạm hiển thị hash rút gọn
+      const pseudo = "0x" + pendingPrivateKey.slice(2, 10).padEnd(8, "0");
+      sessionStorage.setItem("wallet_address", pseudo);
+      dashboardAddressEl.textContent = shortenAddress(pseudo);
+      showView("dashboard");
+    }
+
+    document.getElementById("btn-login-from-create").addEventListener("click", () => {
+      if (!pendingPrivateKey) return;
+      goToDashboard(pendingPrivateKey);
+    });
+
+    document.getElementById("btn-login-from-import").addEventListener("click", () => {
+      const raw = importKeyEl.value.trim();
+      importErrorEl.textContent = "";
+      if (!raw) {
+        importErrorEl.textContent = "Vui lòng nhập Private Key.";
+        return;
+      }
+      const normalized = raw.startsWith("0x") ? raw : "0x" + raw;
+      if (!/^0x[0-9a-fA-F]{64}$/.test(normalized)) {
+        importErrorEl.textContent = "Private Key không hợp lệ (cần 64 ký tự hex).";
+        return;
+      }
+      goToDashboard(normalized);
+    });
+
+    document.getElementById("btn-logout").addEventListener("click", () => {
+      sessionStorage.removeItem("wallet_private_key");
+      sessionStorage.removeItem("wallet_address");
+      pendingPrivateKey = "";
+      showView("home");
+    });
+
+    (function restoreSession() {
+      const key = sessionStorage.getItem("wallet_private_key");
+      const addr = sessionStorage.getItem("wallet_address");
+      if (key && addr) {
+        pendingPrivateKey = key;
+        dashboardAddressEl.textContent = shortenAddress(addr);
+        showView("dashboard");
+      }
+    })();
+  </script>
+</body>
+</html>

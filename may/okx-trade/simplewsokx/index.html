@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OKX Positions · Simple WS</title>
+  <style>
+    :root {
+      --bg: #000;
+      --panel: #121212;
+      --border: #1f1f1f;
+      --text: #fff;
+      --muted: #848e9c;
+      --green: #2ebd85;
+      --red: #f6465d;
+      --gold: #f3ba2f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 12px;
+      font-size: 15px;
+    }
+    h1 { font-size: 1.1rem; margin-bottom: 8px; }
+    .sub { color: var(--muted); font-size: 0.8rem; margin-bottom: 12px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+    .status {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+    .dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      margin-right: 4px;
+    }
+    .dot.on { background: var(--green); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      color: var(--muted);
+      font-weight: normal;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tr:hover td { background: #181a20; }
+    .pos-positive { color: var(--green); font-weight: 600; }
+    .pos-negative { color: var(--red); font-weight: 600; }
+    .muted { color: var(--muted); font-size: 0.75rem; }
+    .badge {
+      background: #2b3139;
+      color: var(--gold);
+      font-size: 0.7rem;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    #log {
+      font-family: monospace;
+      font-size: 11px;
+      color: #888;
+      max-height: 80px;
+      overflow-y: auto;
+      line-height: 1.4;
+    }
+    .empty { text-align: center; color: var(--muted); padding: 32px; }
+    .err { color: var(--red); font-size: 0.85rem; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>OKX SWAP Positions</h1>
+<p class="sub">WS only · sửa CONFIG trong file này · mở trực tiếp, không cần server</p>
+
+<div id="err" class="err" hidden></div>
+
+<div class="status">
+  <span><span id="dot" class="dot"></span><span id="statusText">Đang tải...</span></span>
+  <span>Vị thế: <strong id="posCount" style="color:#fff">0</strong></span>
+  <span id="envTag" class="muted"></span>
+</div>
+
+<div class="panel table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Symbol</th>
+        <th>PnL</th>
+        <th>Size</th>
+        <th>Mark</th>
+        <th>Entry</th>
+        <th>Margin</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr><td colspan="6" class="empty">Đang kết nối WS...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="panel">
+  <div id="log"></div>
+</div>
+
+<script>
+(function () {
+  // ← Sửa credentials tại đây (real | demo)
+  const CONFIG = {
+    apiKey: "1d29b240-e000-48fc-a824-f2acf6f977e7",
+    secretKey: "1FAEF2944540F29C40DE0206DA048367",
+    passphrase: "Okx@0306",
+    env: "real"
+  };
+
+  const $ = (id) => document.getElementById(id);
+  let ws = null;
+  let creds = { apiKey: "", secretKey: "", passphrase: "", env: "real" };
+
+  function log(msg) {
+    const t = new Date().toLocaleTimeString();
+    $("log").innerHTML = `[${t}] ${msg}<br>` + $("log").innerHTML;
+  }
+
+  function showErr(msg) {
+    $("err").hidden = false;
+    $("err").textContent = msg;
+    setStatus(false, "Lỗi cấu hình");
+  }
+
+  function wsURL() {
+    return creds.env === "demo"
+      ? "wss://wspap.okx.com:443/ws/v5/private"
+      : "wss://ws.okx.com:443/ws/v5/private";
+  }
+
+  async function hmacSign(secret, timestamp, method, path, body) {
+    const message = timestamp + method + path + (body || "");
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+    let bin = "";
+    const bytes = new Uint8Array(sig);
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  function setStatus(on, text) {
+    $("dot").className = on ? "dot on" : "dot";
+    $("statusText").textContent = text;
+  }
+
+  function openPositions(list) {
+    return (list || []).filter((p) => Math.abs(parseFloat(p.pos || 0)) > 0);
+  }
+
+  function render(positions) {
+    const open = openPositions(positions);
+    $("posCount").textContent = open.length;
+    if (!open.length) {
+      $("tbody").innerHTML = '<tr><td colspan="6" class="empty">Không có vị thế SWAP</td></tr>';
+      return;
+    }
+    $("tbody").innerHTML = open.map((pos) => {
+      const upl = parseFloat(pos.upl || 0);
+      const pct = (parseFloat(pos.uplRatio || 0) * 100).toFixed(2);
+      const cls = upl >= 0 ? "pos-positive" : "pos-negative";
+      const sign = upl >= 0 ? "+" : "";
+      const name = (pos.instId || "").replace("-SWAP", "").replace(/-/g, "") + " Perp";
+      return `<tr>
+        <td><strong>${name}</strong> <span class="badge">${pos.lever}x</span></td>
+        <td class="${cls}">${sign}${upl.toFixed(2)} <span class="muted">(${sign}${pct}%)</span></td>
+        <td>${parseFloat(pos.pos || 0).toFixed(2)}</td>
+        <td>₮${parseFloat(pos.markPx || 0).toFixed(5)}</td>
+        <td>₮${parseFloat(pos.avgPx || 0).toFixed(5)}</td>
+        <td>${parseFloat(pos.margin || 0).toFixed(2)} <span class="muted">${pos.mgnMode || ""}</span></td>
+      </tr>`;
+    }).join("");
+  }
+
+  function loadCreds() {
+    return {
+      apiKey: String(CONFIG.apiKey || "").trim(),
+      secretKey: String(CONFIG.secretKey || "").trim(),
+      passphrase: String(CONFIG.passphrase || "").trim(),
+      env: CONFIG.env === "demo" ? "demo" : "real"
+    };
+  }
+
+  async function connectWS() {
+    creds = loadCreds();
+    if (!creds.apiKey || !creds.secretKey || !creds.passphrase ||
+        creds.apiKey.startsWith("YOUR_")) {
+      showErr("Sửa CONFIG trong index.html (apiKey, secretKey, passphrase)");
+      log("Không có apiKey / secretKey / passphrase");
+      return;
+    }
+
+    $("envTag").textContent = creds.env === "demo" ? "· Demo" : "· Real";
+    if (ws) { ws.close(); ws = null; }
+
+    setStatus(false, "Đang kết nối...");
+    log("WS → " + wsURL());
+
+    const url = wsURL();
+    ws = new WebSocket(url);
+
+    const connectTimeout = setTimeout(() => {
+      if (ws && ws.readyState !== WebSocket.OPEN) {
+        log("WS timeout 15s — không mở được " + url);
+        log("Kiểm tra: mạng/VPN, env demo vs real, hoặc dùng tvboxtermux (Go WS)");
+        setStatus(false, "WS timeout");
+        try { ws.close(); } catch (_) {}
+      }
+    }, 15000);
+
+    ws.onopen = async () => {
+      clearTimeout(connectTimeout);
+      log("WS socket open");
+      const ts = Math.floor(Date.now() / 1000).toString();
+      try {
+        const sign = await hmacSign(creds.secretKey, ts, "GET", "/users/self/verify", "");
+        ws.send(JSON.stringify({
+          op: "login",
+          args: [{ apiKey: creds.apiKey, passphrase: creds.passphrase, timestamp: ts, sign }]
+        }));
+        log("Login sent");
+      } catch (err) {
+        log("Sign error: " + err.message);
+        setStatus(false, "Lỗi ký");
+      }
+    };
+
+    ws.onmessage = (e) => {
+      let res;
+      try { res = JSON.parse(e.data); } catch { return; }
+
+      if (res.event === "login") {
+        if (res.code === "0") {
+          setStatus(true, "WS live");
+          log("Subscribe positions SWAP");
+          ws.send(JSON.stringify({
+            op: "subscribe",
+            args: [{ channel: "positions", instType: "SWAP" }]
+          }));
+        } else {
+          setStatus(false, "Login lỗi");
+          log("Login fail: " + (res.msg || res.code));
+        }
+        return;
+      }
+
+      if (res.event === "error") {
+        log("WS error: " + (res.msg || JSON.stringify(res)));
+        return;
+      }
+
+      if (res.data && res.arg && res.arg.channel === "positions") {
+        render(res.data);
+      }
+    };
+
+    ws.onerror = () => {
+      clearTimeout(connectTimeout);
+      log("WebSocket error (mạng chặn wss://ws.okx.com?)");
+      setStatus(false, "WS lỗi");
+    };
+    ws.onclose = (ev) => {
+      clearTimeout(connectTimeout);
+      setStatus(false, "Mất kết nối");
+      log("WS closed code=" + (ev.code || "?") + " — reconnect 5s");
+      setTimeout(connectWS, 5000);
+    };
+  }
+
+  connectWS();
+})();
+</script>
+</body>
+</html>

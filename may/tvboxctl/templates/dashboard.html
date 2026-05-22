@@ -1,0 +1,217 @@
+{{define "dashboard"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TV Box Control</title>
+  <style>
+    :root {
+      --bg: #0c0e12;
+      --panel: #141820;
+      --border: #252b36;
+      --text: #e8eaef;
+      --muted: #8b93a7;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --ok: #22c55e;
+      --err: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    h1 { font-size: 1.5rem; margin: 0 0 4px; }
+    .subtitle { color: var(--muted); margin: 0 0 20px; font-size: 0.9rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .panel h2 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 0 0 12px;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    input[type="text"], input[type="password"], textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
+    textarea { min-height: 72px; font-family: ui-monospace, monospace; resize: vertical; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    button, .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover { background: var(--accent-hover); }
+    button.secondary {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    button.secondary:hover { background: #1c2230; }
+    button.danger { background: #7f1d1d; }
+    button.danger:hover { background: #991b1b; }
+    .output {
+      background: #080a0e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 80px;
+      max-height: 240px;
+      overflow: auto;
+    }
+    .output.ok { border-color: #166534; }
+    .output.err { border-color: #991b1b; color: #fca5a5; }
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #1e3a5f;
+      color: #93c5fd;
+      margin-left: 8px;
+    }
+    form { margin: 0; }
+    .hint { font-size: 0.75rem; color: var(--muted); margin-top: -6px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>TV Box Control <span class="badge">ADB + SSH</span></h1>
+  <p class="subtitle">SSR dashboard — send key events via ADB and shell commands via SSH.</p>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Connection</h2>
+      <form method="post" action="/">
+        <input type="hidden" name="action" value="save">
+        <label>ADB host (network, e.g. 192.168.1.50:5555)</label>
+        <input type="text" name="adb_host" value="{{.Config.ADBHost}}" placeholder="192.168.1.50:5555">
+        <label>ADB serial (optional, from adb devices)</label>
+        <input type="text" name="adb_serial" value="{{.Config.ADBSerial}}" placeholder="emulator-5554">
+        <label>SSH host</label>
+        <input type="text" name="ssh_host" value="{{.Config.SSHHost}}" placeholder="192.168.1.50">
+        <label>SSH port</label>
+        <input type="text" name="ssh_port" value="{{.Config.SSHPort}}" placeholder="22">
+        <label>SSH user</label>
+        <input type="text" name="ssh_user" value="{{.Config.SSHUser}}" placeholder="root">
+        <label>SSH private key path</label>
+        <input type="text" name="ssh_key" value="{{.Config.SSHKey}}" placeholder="/Users/you/.ssh/id_rsa">
+        <label>SSH password (if no key)</label>
+        <input type="password" name="ssh_password" value="" placeholder="leave blank to keep env default">
+        <p class="hint">Values persist for this session via form posts. Set ADB_HOST, SSH_HOST, etc. in env for defaults.</p>
+        <button type="submit" class="secondary">Save connection</button>
+        <button type="submit" formaction="/status" class="secondary">Check status</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>ADB remote</h2>
+      <form method="post" action="/adb">
+        {{template "hidden_config" .}}
+        <div class="row">
+          <button type="submit" name="keyevent" value="3">Home</button>
+          <button type="submit" name="keyevent" value="4">Back</button>
+          <button type="submit" name="keyevent" value="26">Power</button>
+          <button type="submit" name="keyevent" value="82">Menu</button>
+          <button type="submit" name="keyevent" value="24">Vol+</button>
+          <button type="submit" name="keyevent" value="25">Vol−</button>
+          <button type="submit" name="keyevent" value="66">Enter</button>
+        </div>
+        <div class="row">
+          <button type="submit" name="keyevent" value="85">Play/Pause</button>
+          <button type="submit" name="keyevent" value="126">Play</button>
+          <button type="submit" name="keyevent" value="127">Pause</button>
+          <button type="submit" name="do" value="kill_tabs" class="danger">Kill all tabs</button>
+        </div>
+        <div class="row">
+          <button type="submit" name="keyevent" value="19" class="secondary">↑</button>
+          <button type="submit" name="keyevent" value="20" class="secondary">↓</button>
+          <button type="submit" name="keyevent" value="21" class="secondary">←</button>
+          <button type="submit" name="keyevent" value="22" class="secondary">→</button>
+        </div>
+        <label>Custom keycode</label>
+        <div class="row">
+          <input type="text" name="keyevent_custom" placeholder="e.g. 3" style="flex:1;margin:0">
+          <button type="submit">Send keycode</button>
+        </div>
+        <label>Type text (ADB input text)</label>
+        <input type="text" name="input_text" placeholder="hello world">
+        <button type="submit" name="do" value="text">Send text</button>
+        <label>ADB shell command</label>
+        <textarea name="shell_cmd" placeholder="pm list packages | head"></textarea>
+        <button type="submit" name="do" value="shell">Run shell</button>
+        <button type="submit" name="do" value="reboot" class="danger">Reboot device</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>SSH shell</h2>
+      <form method="post" action="/ssh">
+        {{template "hidden_config" .}}
+        <label>Command on TV box</label>
+        <textarea name="ssh_cmd" placeholder="uname -a">{{.SSHCmd}}</textarea>
+        <div class="row">
+          <button type="submit">Run SSH</button>
+          <button type="submit" name="quick" value="uptime" class="secondary">uptime</button>
+          <button type="submit" name="quick" value="reboot" class="danger">reboot</button>
+        </div>
+        <p class="hint">Quick presets fill the command field on the server.</p>
+      </form>
+    </section>
+  </div>
+
+  {{if .Message}}
+  <section class="panel">
+    <h2>Output</h2>
+    <div class="output {{if .Error}}err{{else}}ok{{end}}">{{.Message}}</div>
+  </section>
+  {{end}}
+</body>
+</html>
+{{end}}
+
+{{define "hidden_config"}}
+  <input type="hidden" name="adb_host" value="{{.Config.ADBHost}}">
+  <input type="hidden" name="adb_serial" value="{{.Config.ADBSerial}}">
+  <input type="hidden" name="ssh_host" value="{{.Config.SSHHost}}">
+  <input type="hidden" name="ssh_port" value="{{.Config.SSHPort}}">
+  <input type="hidden" name="ssh_user" value="{{.Config.SSHUser}}">
+  <input type="hidden" name="ssh_key" value="{{.Config.SSHKey}}">
+{{end}}

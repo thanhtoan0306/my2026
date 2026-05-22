@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SSH Connect Guide</title>
+    <script src="https://unpkg.com/htmx.org@1.11.1"></script>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+    <main class="page-shell">
+        <header>
+            <h1>Step-by-step SSH Connect Guide</h1>
+            <p>Use this interface to build your SSH command, copy it, and preview execution.</p>
+        </header>
+
+        <section class="steps">
+            <article class="step-card">
+                <h2>1. Enter device info</h2>
+                <form id="ssh-form" hx-post="/command" hx-trigger="change delay:250ms" hx-target="#snippet" hx-swap="outerHTML">
+                    <label>
+                        SSH user
+                        <input type="text" name="user" value="{{.User}}" placeholder="root" />
+                    </label>
+                    <label>
+                        Device IP / hostname
+                        <input type="text" name="host" value="{{.Host}}" placeholder="192.168.1.100" />
+                    </label>
+                    <label>
+                        SSH port
+                        <input type="text" name="port" value="{{.Port}}" placeholder="22" />
+                    </label>
+                </form>
+            </article>
+
+            <article class="step-card" id="snippet">
+                <h2>2. Copy the SSH command</h2>
+                <div class="terminal-card">
+                    <pre id="ssh-command">{{.Command}}</pre>
+                    <button class="copy-btn" type="button" onclick="copyCommand()">Copy</button>
+                    <button class="run-btn" type="button" onclick="runCommand()">Run</button>
+                </div>
+                <p class="hint">Tip: you can also edit the fields above to regenerate the command automatically.</p>
+            </article>
+
+            <article class="step-card" id="result">
+                <h2>3. Run preview</h2>
+                <div class="output-card" hx-get="/run" hx-trigger="load"></div>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        function copyCommand() {
+            const text = document.getElementById('ssh-command').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Command copied to clipboard');
+            });
+        }
+
+        function runCommand() {
+            const form = document.getElementById('ssh-form');
+            const event = new Event('change', { bubbles: true });
+            form.dispatchEvent(event);
+            fetch('/run', {
+                method: 'POST',
+                body: new FormData(form)
+            }).then(res => res.text()).then(html => {
+                document.getElementById('result').outerHTML = html;
+            });
+        }
+    </script>
+</body>
+</html>
