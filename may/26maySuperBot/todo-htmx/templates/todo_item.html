@@ -4,7 +4,7 @@
     type="button"
     class="check"
     title="Toggle done"
-    hx-post="/todos/{{.ID}}/toggle"
+    hx-post="/apps/{{.AppName}}/todos/{{.ID}}/toggle"
     hx-target="#todo-{{.ID}}"
     hx-swap="outerHTML"
   >{{if .Done}}&#10003;{{else}}&#9675;{{end}}</button>
@@ -13,7 +13,7 @@
     type="button"
     class="delete"
     title="Delete"
-    hx-delete="/todos/{{.ID}}"
+    hx-delete="/apps/{{.AppName}}/todos/{{.ID}}"
     hx-target="#todo-{{.ID}}"
     hx-swap="delete"
     hx-confirm="Delete this todo?"

@@ -1,0 +1,10 @@
+{{define "nav"}}
+<nav class="top-nav">
+  <a href="/dashboard" class="brand">26maySuperBot</a>
+  <span class="nav-links">
+    <a href="/dashboard">Dashboard</a>
+    {{if .ActiveApp}}<a href="/apps/{{.ActiveApp}}" class="active">/apps/{{.ActiveApp}}</a>{{end}}
+    <a href="{{.ConsoleFirestoreURL}}" target="_blank" rel="noopener">Firestore</a>
+  </span>
+</nav>
+{{end}}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apps Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44YQLn9zBdKfL4+Fk3iWVudjlBurrVXSF9r4Cwm2afnY2JY" crossorigin="anonymous"></script>
+</head>
+<body>
+  {{template "nav" .}}
+  <main class="container container-wide">
+    <header class="header">
+      <h1>Apps dashboard</h1>
+      <p class="subtitle">Manage <code>apps/{projectName}/</code> in Firestore · project <code>{{.ProjectID}}</code></p>
+    </header>
+
+    <section class="panel">
+      <h2 class="panel-title">Create app</h2>
+      <form
+        class="add-form add-form-stack"
+        method="post"
+        action="/dashboard/apps"
+        hx-post="/dashboard/apps"
+        hx-target="#app-list"
+        hx-swap="innerHTML"
+      >
+        <div class="form-row">
+          <label>Project name (slug)</label>
+          <input type="text" name="name" placeholder="my-app" pattern="[a-z0-9][a-z0-9_-]*" required>
+          <span class="hint">URL: /apps/<strong>my-app</strong></span>
+        </div>
+        <div class="form-row">
+          <label>Display name</label>
+          <input type="text" name="displayName" placeholder="My App">
+        </div>
+        <div class="form-row">
+          <label>Description</label>
+          <input type="text" name="description" placeholder="Optional">
+        </div>
+        <button type="submit">Create app</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Registered apps</h2>
+      <div id="app-list">
+        {{template "app_list" .}}
+      </div>
+    </section>
+
+    <details class="firebase-guide">
+      <summary>Firestore layout for each app</summary>
+      <div class="firebase-guide-body">
+        <pre class="path-tree">apps/
+  {projectName}/          ← app document (displayName, description)
+    todos/{todoId}        ← todo-htmx
+    notes/{noteId}        ← sticky notes (client)
+    …                     ← add more subcollections as needed</pre>
+        <p><a href="{{.ConsoleFirestoreURL}}" target="_blank" rel="noopener">Open Firestore Data</a></p>
+      </div>
+    </details>
+  </main>
+</body>
+</html>

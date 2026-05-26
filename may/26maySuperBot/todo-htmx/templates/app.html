@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.App.DisplayName}} — App</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44YQLn9zBdKfL4+Fk3iWVudjlBurrVXSF9r4Cwm2afnY2JY" crossorigin="anonymous"></script>
+</head>
+<body>
+  {{template "nav" .}}
+  <main class="container container-wide">
+    <header class="header">
+      <h1>{{.App.DisplayName}}</h1>
+      <p class="subtitle"><code>apps/{{.App.Name}}/</code> · {{.TodoCount}} todos</p>
+      {{if .App.Description}}<p class="subtitle">{{.App.Description}}</p>{{end}}
+    </header>
+
+    {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+    <section class="panel paths-panel">
+      <h2 class="panel-title">Collections under this app</h2>
+      <table class="paths-table">
+        <thead>
+          <tr><th>Collection</th><th>Firestore path</th><th>Use</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>todos</code></td>
+            <td><code>{{.TodosPath}}</code></td>
+            <td>This app (HTMX todo list)</td>
+          </tr>
+          <tr>
+            <td><code>notes</code></td>
+            <td><code>{{.NotesPath}}</code></td>
+            <td>Sticky notes / other clients</td>
+          </tr>
+          <tr>
+            <td><code>…</code></td>
+            <td><code>apps/{{.App.Name}}/your-collection</code></td>
+            <td>Add any subcollection you need</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="hint">
+        <a href="{{.ConsoleFirestoreURL}}/~2Fapps~2F{{.App.Name}}" target="_blank" rel="noopener">View in Firebase Console</a>
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Todos</h2>
+      <form
+        class="add-form"
+        method="post"
+        action="/apps/{{.App.Name}}/todos"
+        hx-post="/apps/{{.App.Name}}/todos"
+        hx-target="#todo-list"
+        hx-swap="innerHTML"
+      >
+        <input type="text" name="title" placeholder="New todo…" autocomplete="off" required>
+        <button type="submit">Add</button>
+      </form>
+      <div id="todo-list">
+        {{template "todo_list" .}}
+      </div>
+    </section>
+
+    <p class="back-link"><a href="/dashboard">← All apps</a></p>
+  </main>
+</body>
+</html>

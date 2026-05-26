@@ -22,28 +22,45 @@ type Todo struct {
 	CreatedAt time.Time
 }
 
-type PageData struct {
-	Todos               []Todo
-	Error               string
+type BaseData struct {
 	ProjectID           string
-	AppID               string
-	FirestorePath       string
 	ConsoleProjectURL   string
 	ConsoleFirestoreURL string
+	ActiveApp           string
+	Error               string
 }
 
-type TodoStore interface {
-	List(ctx context.Context) ([]Todo, error)
-	Create(ctx context.Context, title string) (Todo, error)
-	Toggle(ctx context.Context, id string) (Todo, error)
-	Delete(ctx context.Context, id string) error
+type TodoPageData struct {
+	BaseData
+	AppName string
+	Todos   []Todo
 }
 
-type App struct {
-	store     TodoStore
+type DashboardData struct {
+	BaseData
+	Apps []AppRecord
+}
+
+type AppPageData struct {
+	BaseData
+	App           AppRecord
+	AppName       string
+	Todos         []Todo
+	TodoCount     int
+	TodosPath     string
+	NotesPath     string
+	FirestorePath string
+}
+
+type TodoItemData struct {
+	Todo
+	AppName string
+}
+
+type Server struct {
+	db        *FirestoreDB
 	templates *template.Template
 	projectID string
-	appID     string
 }
 
 func main() {
@@ -53,9 +70,17 @@ func main() {
 	}
 
 	ctx := context.Background()
-	store, projectID, appID, err := initFirestoreStore(ctx, root)
+	projectID, err := resolveProjectID(root)
 	if err != nil {
-		log.Fatalf("firebase/firestore: %v", err)
+		log.Fatalf("config: %v", err)
+	}
+	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") == "" {
+		log.Fatal("set GOOGLE_APPLICATION_CREDENTIALS to your Firebase service account JSON path")
+	}
+
+	db, err := NewFirestoreDB(ctx, projectID)
+	if err != nil {
+		log.Fatalf("firestore: %v", err)
 	}
 
 	tmpl, err := template.ParseGlob(filepath.Join(root, "templates", "*.html"))
@@ -63,34 +88,26 @@ func main() {
 		log.Fatalf("parse templates: %v", err)
 	}
 
-	app := &App{store: store, templates: tmpl, projectID: projectID, appID: appID}
+	srv := &Server{db: db, templates: tmpl, projectID: projectID}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", app.index)
-	mux.HandleFunc("POST /todos", app.create)
-	mux.HandleFunc("POST /todos/{id}/toggle", app.toggle)
-	mux.HandleFunc("DELETE /todos/{id}", app.delete)
+	mux.HandleFunc("GET /", srv.rootRedirect)
+	mux.HandleFunc("GET /dashboard", srv.dashboard)
+	mux.HandleFunc("POST /dashboard/apps", srv.dashboardCreateApp)
+	mux.HandleFunc("GET /apps/{projectName}", srv.appPage)
+	mux.HandleFunc("POST /apps/{projectName}/todos", srv.appCreateTodo)
+	mux.HandleFunc("POST /apps/{projectName}/todos/{id}/toggle", srv.appToggleTodo)
+	mux.HandleFunc("DELETE /apps/{projectName}/todos/{id}", srv.appDeleteTodo)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(root, "static")))))
 
 	port := envOr("PORT", "8080")
-	log.Printf("Todo HTMX + Firestore: http://127.0.0.1:%s", port)
+	log.Printf("Dashboard: http://127.0.0.1:%s/dashboard", port)
+	log.Printf("Apps path: apps/{projectName}/{{todos,notes,...}}")
 	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
 
-func (a *App) basePageData() PageData {
-	return PageData{
-		ProjectID:           a.projectID,
-		AppID:               a.appID,
-		FirestorePath:       "artifacts/" + a.appID + "/public/data/todos",
-		ConsoleProjectURL:   "https://console.firebase.google.com/project/" + a.projectID,
-		ConsoleFirestoreURL: "https://console.firebase.google.com/project/" + a.projectID + "/firestore/databases/-default-/data",
-	}
-}
-
-func initFirestoreStore(ctx context.Context, root string) (*FirestoreStore, string, string, error) {
+func resolveProjectID(root string) (string, error) {
 	projectID := os.Getenv("FIREBASE_PROJECT_ID")
-	appID := os.Getenv("FIREBASE_APP_ID")
-
 	if projectID == "" {
 		if id, err := projectIDFromConfig(filepath.Join(root, "config.json")); err == nil {
 			projectID = id
@@ -102,18 +119,9 @@ func initFirestoreStore(ctx context.Context, root string) (*FirestoreStore, stri
 		}
 	}
 	if projectID == "" {
-		return nil, "", "", errors.New("set FIREBASE_PROJECT_ID or add todo-htmx/config.json with projectId")
+		return "", errors.New("set FIREBASE_PROJECT_ID or add config.json with projectId")
 	}
-	if appID == "" {
-		appID = projectID
-	}
-	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") == "" {
-		return nil, "", "", errors.New("set GOOGLE_APPLICATION_CREDENTIALS to your Firebase service account JSON path")
-	}
-
-	log.Printf("Firestore: project=%s path=artifacts/%s/public/data/todos", projectID, appID)
-	store, err := NewFirestoreStore(ctx, projectID, appID)
-	return store, projectID, appID, err
+	return projectID, nil
 }
 
 type firebaseWebConfig struct {
@@ -135,97 +143,177 @@ func projectIDFromConfig(path string) (string, error) {
 	return cfg.ProjectID, nil
 }
 
-func (a *App) index(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-	defer cancel()
-
-	todos, err := a.store.List(ctx)
-	data := a.basePageData()
-	if err != nil {
-		log.Printf("list todos: %v", err)
-		data.Error = "Could not load todos from Firestore"
-		a.render(w, "index.html", data)
-		return
+func (s *Server) baseData() BaseData {
+	return BaseData{
+		ProjectID:           s.projectID,
+		ConsoleProjectURL:   "https://console.firebase.google.com/project/" + s.projectID,
+		ConsoleFirestoreURL: "https://console.firebase.google.com/project/" + s.projectID + "/firestore/databases/-default-/data",
 	}
-	data.Todos = todos
-	a.render(w, "index.html", data)
 }
 
-func (a *App) create(w http.ResponseWriter, r *http.Request) {
+func (s *Server) rootRedirect(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	apps, err := s.db.ListApps(ctx)
+	data := DashboardData{BaseData: s.baseData(), Apps: apps}
+	if err != nil {
+		log.Printf("list apps: %v", err)
+		data.Error = "Could not load apps from Firestore"
+	}
+	s.render(w, "dashboard.html", data)
+}
+
+func (s *Server) dashboardCreateApp(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
 	if err := r.ParseForm(); err != nil {
-		a.respondCreate(w, r, ctx, PageData{Error: "Invalid form"})
-		return
-	}
-	title := r.FormValue("title")
-	if title == "" {
-		todos, _ := a.store.List(ctx)
-		a.respondCreate(w, r, ctx, PageData{Error: "Title is required", Todos: todos})
+		s.dashboardError(w, r, "Invalid form")
 		return
 	}
 
-	if _, err := a.store.Create(ctx, title); err != nil {
-		log.Printf("create todo: %v", err)
-		todos, _ := a.store.List(ctx)
-		a.respondCreate(w, r, ctx, PageData{Error: "Could not save to Firestore", Todos: todos})
+	name := r.FormValue("name")
+	displayName := r.FormValue("displayName")
+	description := r.FormValue("description")
+
+	if _, err := s.db.CreateApp(ctx, name, displayName, description); err != nil {
+		log.Printf("create app: %v", err)
+		s.dashboardError(w, r, err.Error())
 		return
 	}
 
-	todos, err := a.store.List(ctx)
-	if err != nil {
-		a.respondCreate(w, r, ctx, PageData{Error: "Saved but could not reload list"})
-		return
-	}
-	a.respondCreate(w, r, ctx, PageData{Todos: todos})
-}
-
-func (a *App) respondCreate(w http.ResponseWriter, r *http.Request, ctx context.Context, data PageData) {
 	if isHTMX(r) {
-		if data.Error != "" {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-		}
-		a.render(w, "todo_list.html", data)
+		apps, _ := s.db.ListApps(ctx)
+		s.render(w, "app_list.html", DashboardData{BaseData: s.baseData(), Apps: apps})
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
-func (a *App) toggle(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+func (s *Server) dashboardError(w http.ResponseWriter, r *http.Request, msg string) {
+	if isHTMX(r) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		apps, _ := s.db.ListApps(r.Context())
+		base := s.baseData()
+		base.Error = msg
+		s.render(w, "app_list.html", DashboardData{BaseData: base, Apps: apps})
+		return
+	}
+	http.Error(w, msg, http.StatusBadRequest)
+}
+
+func (s *Server) appPage(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
 
-	id := r.PathValue("id")
-	todo, err := a.store.Toggle(ctx, id)
+	projectName := r.PathValue("projectName")
+	app, err := s.db.GetApp(ctx, projectName)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			http.NotFound(w, r)
 			return
 		}
-		log.Printf("toggle todo: %v", err)
+		log.Printf("get app: %v", err)
+		http.Error(w, "Firestore error", http.StatusInternalServerError)
+		return
+	}
+
+	todos, err := s.db.ListTodos(ctx, projectName)
+	data := s.appPageData(app)
+	data.AppName = projectName
+	if err != nil {
+		log.Printf("list todos: %v", err)
+		data.Error = "Could not load todos"
+	} else {
+		data.Todos = todos
+		data.TodoCount = len(todos)
+	}
+	data.ActiveApp = projectName
+	s.render(w, "app.html", data)
+}
+
+func (s *Server) appPageData(app AppRecord) AppPageData {
+	return AppPageData{
+		BaseData:      s.baseData(),
+		App:           app,
+		TodosPath:     "apps/" + app.Name + "/todos",
+		NotesPath:     "apps/" + app.Name + "/notes",
+		FirestorePath: "apps/" + app.Name,
+	}
+}
+
+func (s *Server) appCreateTodo(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	projectName := r.PathValue("projectName")
+	if err := r.ParseForm(); err != nil {
+		s.appTodoListError(w, r, projectName, "Invalid form")
+		return
+	}
+	title := r.FormValue("title")
+	if title == "" {
+		s.appTodoListError(w, r, projectName, "Title is required")
+		return
+	}
+
+	if _, err := s.db.CreateTodo(ctx, projectName, title); err != nil {
+		log.Printf("create todo: %v", err)
+		s.appTodoListError(w, r, projectName, "Could not save to Firestore")
+		return
+	}
+
+	todos, err := s.db.ListTodos(ctx, projectName)
+	if err != nil {
+		s.appTodoListError(w, r, projectName, "Saved but could not reload")
+		return
+	}
+	s.respondAppTodos(w, r, projectName, todos, "")
+}
+
+func (s *Server) appToggleTodo(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	projectName := r.PathValue("projectName")
+	id := r.PathValue("id")
+
+	todo, err := s.db.ToggleTodo(ctx, projectName, id)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			http.NotFound(w, r)
+			return
+		}
+		log.Printf("toggle: %v", err)
 		http.Error(w, "Firestore error", http.StatusInternalServerError)
 		return
 	}
 
 	if isHTMX(r) {
-		a.render(w, "todo_item.html", todo)
+		s.render(w, "todo_item.html", TodoItemData{Todo: todo, AppName: projectName})
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/apps/"+projectName, http.StatusSeeOther)
 }
 
-func (a *App) delete(w http.ResponseWriter, r *http.Request) {
+func (s *Server) appDeleteTodo(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
+	projectName := r.PathValue("projectName")
 	id := r.PathValue("id")
-	if err := a.store.Delete(ctx, id); err != nil {
+
+	if err := s.db.DeleteTodo(ctx, projectName, id); err != nil {
 		if status.Code(err) == codes.NotFound {
 			http.NotFound(w, r)
 			return
 		}
-		log.Printf("delete todo: %v", err)
+		log.Printf("delete: %v", err)
 		http.Error(w, "Firestore error", http.StatusInternalServerError)
 		return
 	}
@@ -234,12 +322,31 @@ func (a *App) delete(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/apps/"+projectName, http.StatusSeeOther)
 }
 
-func (a *App) render(w http.ResponseWriter, name string, data any) {
+func (s *Server) appTodoListError(w http.ResponseWriter, r *http.Request, projectName, msg string) {
+	todos, _ := s.db.ListTodos(r.Context(), projectName)
+	s.respondAppTodos(w, r, projectName, todos, msg)
+}
+
+func (s *Server) respondAppTodos(w http.ResponseWriter, r *http.Request, projectName string, todos []Todo, errMsg string) {
+	base := s.baseData()
+	base.Error = errMsg
+	data := TodoPageData{BaseData: base, AppName: projectName, Todos: todos}
+	if isHTMX(r) {
+		if errMsg != "" {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+		}
+		s.render(w, "todo_list.html", data)
+		return
+	}
+	http.Redirect(w, r, "/apps/"+projectName, http.StatusSeeOther)
+}
+
+func (s *Server) render(w http.ResponseWriter, name string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := a.templates.ExecuteTemplate(w, name, data); err != nil {
+	if err := s.templates.ExecuteTemplate(w, name, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

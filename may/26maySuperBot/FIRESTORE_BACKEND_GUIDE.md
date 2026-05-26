@@ -17,15 +17,18 @@ Guide for wiring a **new backend project** (Go, Node, Python, etc.) to the same 
 
 | App | Path | Document fields |
 |-----|------|-----------------|
-| **todo-htmx** (Go) | `artifacts/{appId}/public/data/todos/{todoId}` | `title`, `done`, `createdAt` |
-| **firebase-sticky-notes** (browser) | `artifacts/{appId}/public/data/notes/{noteId}` | `title`, `content`, `authorId`, `createdAt` |
+| **todo-htmx** (Go) | `apps/{projectName}/todos/{todoId}` | `title`, `done`, `createdAt` |
+| **todo-htmx** (Go) app registry | `apps/{projectName}` | `displayName`, `description`, `createdAt` |
+| **firebase-sticky-notes** (browser) | `apps/{projectName}/notes/{noteId}` (or legacy `artifacts/.../notes`) | `title`, `content`, `authorId`, `createdAt` |
 
 `{appId}` is usually the same as **project ID** (`FIREBASE_APP_ID` / `projectId` in config).  
 Example full path for todos:
 
 ```text
-artifacts/gen-lang-client-0298822444/public/data/todos/abc123xyz
+apps/my-app/todos/abc123xyz
 ```
+
+App metadata document: `apps/my-app`
 
 ---
 

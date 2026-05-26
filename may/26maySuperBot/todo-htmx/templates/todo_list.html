@@ -5,7 +5,26 @@
 {{if .Todos}}
 <ul class="todo-list">
   {{range .Todos}}
-  {{template "todo_item" .}}
+  <li class="todo-item{{if .Done}} done{{end}}" id="todo-{{.ID}}">
+    <button
+      type="button"
+      class="check"
+      title="Toggle done"
+      hx-post="/apps/{{$.AppName}}/todos/{{.ID}}/toggle"
+      hx-target="#todo-{{.ID}}"
+      hx-swap="outerHTML"
+    >{{if .Done}}&#10003;{{else}}&#9675;{{end}}</button>
+    <span class="title">{{.Title}}</span>
+    <button
+      type="button"
+      class="delete"
+      title="Delete"
+      hx-delete="/apps/{{$.AppName}}/todos/{{.ID}}"
+      hx-target="#todo-{{.ID}}"
+      hx-swap="delete"
+      hx-confirm="Delete this todo?"
+    >&times;</button>
+  </li>
   {{end}}
 </ul>
 {{else}}

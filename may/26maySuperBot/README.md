@@ -24,7 +24,7 @@ export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/serviceAccount.json"
 go run .
 ```
 
-→ http://127.0.0.1:8080
+→ http://127.0.0.1:8080/dashboard
 
 Details: [todo-htmx/README.md](todo-htmx/README.md)
 

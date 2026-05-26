@@ -1,0 +1,24 @@
+{{define "app_list"}}
+{{if .Error}}
+<p class="error" role="alert">{{.Error}}</p>
+{{end}}
+{{if .Apps}}
+<div class="app-grid">
+  {{range .Apps}}
+  <a href="/apps/{{.Name}}" class="app-card">
+    <h3>{{.DisplayName}}</h3>
+    <p class="app-slug"><code>apps/{{.Name}}/</code></p>
+    {{if .Description}}<p class="app-desc">{{.Description}}</p>{{end}}
+    <p class="app-meta">Created {{.CreatedAt.Format "2006-01-02 15:04"}}</p>
+    <ul class="app-collections">
+      <li><code>todos</code></li>
+      <li><code>notes</code></li>
+      <li><code>…</code></li>
+    </ul>
+  </a>
+  {{end}}
+</div>
+{{else}}
+<p class="empty">No apps yet. Create one above.</p>
+{{end}}
+{{end}}

@@ -27,7 +27,24 @@ go mod tidy
 go run .
 ```
 
-Open http://127.0.0.1:8080
+Open http://127.0.0.1:8080 → redirects to **/dashboard**
+
+## Dashboard & apps
+
+| URL | Purpose |
+|-----|---------|
+| `/dashboard` | List/create apps (`apps/{projectName}`) |
+| `/apps/{projectName}` | Manage todos + view collection paths |
+| `/apps/{projectName}/todos` | HTMX create (POST) |
+
+Firestore layout:
+
+```text
+apps/{projectName}           ← app metadata
+apps/{projectName}/todos/    ← todos (this server)
+apps/{projectName}/notes/    ← sticky notes / other clients
+apps/{projectName}/...       ← any subcollection you add
+```
 
 ## Where Firebase save happens
 
@@ -41,10 +58,10 @@ Open http://127.0.0.1:8080
 Path:
 
 ```text
-/artifacts/{FIREBASE_APP_ID}/public/data/todos/{documentId}
+/apps/{projectName}/todos/{documentId}
 ```
 
-Default `FIREBASE_APP_ID` = `FIREBASE_PROJECT_ID`.
+App registry: `apps/{projectName}` document (`displayName`, `description`, `createdAt`).
 
 ## Stack
 

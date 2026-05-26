@@ -3,11 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
 )
+
+var appNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,62}$`)
 
 type todoDoc struct {
 	Title     string    `firestore:"title"`
@@ -15,22 +19,125 @@ type todoDoc struct {
 	CreatedAt time.Time `firestore:"createdAt"`
 }
 
-type FirestoreStore struct {
-	col *firestore.CollectionRef
+type appDoc struct {
+	DisplayName string    `firestore:"displayName"`
+	Description string    `firestore:"description"`
+	CreatedAt   time.Time `firestore:"createdAt"`
 }
 
-func NewFirestoreStore(ctx context.Context, projectID, appID string) (*FirestoreStore, error) {
+type AppRecord struct {
+	Name        string
+	DisplayName string
+	Description string
+	CreatedAt   time.Time
+}
+
+type FirestoreDB struct {
+	client    *firestore.Client
+	projectID string
+}
+
+func NewFirestoreDB(ctx context.Context, projectID string) (*FirestoreDB, error) {
 	client, err := firestore.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("firestore client: %w", err)
 	}
-
-	col := client.Collection("artifacts").Doc(appID).Collection("public").Doc("data").Collection("todos")
-	return &FirestoreStore{col: col}, nil
+	return &FirestoreDB{client: client, projectID: projectID}, nil
 }
 
-func (s *FirestoreStore) List(ctx context.Context) ([]Todo, error) {
-	iter := s.col.OrderBy("createdAt", firestore.Desc).Documents(ctx)
+func (db *FirestoreDB) AppsCollection() *firestore.CollectionRef {
+	return db.client.Collection("apps")
+}
+
+func (db *FirestoreDB) TodosCollection(appName string) *firestore.CollectionRef {
+	return db.client.Collection("apps").Doc(appName).Collection("todos")
+}
+
+func (db *FirestoreDB) NotesCollection(appName string) *firestore.CollectionRef {
+	return db.client.Collection("apps").Doc(appName).Collection("notes")
+}
+
+func NormalizeAppName(raw string) (string, error) {
+	name := strings.ToLower(strings.TrimSpace(raw))
+	name = strings.ReplaceAll(name, " ", "-")
+	if !appNamePattern.MatchString(name) {
+		return "", fmt.Errorf("invalid app name: use lowercase letters, numbers, - or _ (3–63 chars)")
+	}
+	return name, nil
+}
+
+func (db *FirestoreDB) ListApps(ctx context.Context) ([]AppRecord, error) {
+	iter := db.AppsCollection().OrderBy("createdAt", firestore.Desc).Documents(ctx)
+	defer iter.Stop()
+
+	var apps []AppRecord
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		var d appDoc
+		if err := doc.DataTo(&d); err != nil {
+			return nil, err
+		}
+		apps = append(apps, AppRecord{
+			Name:        doc.Ref.ID,
+			DisplayName: d.DisplayName,
+			Description: d.Description,
+			CreatedAt:   d.CreatedAt,
+		})
+	}
+	if apps == nil {
+		apps = []AppRecord{}
+	}
+	return apps, nil
+}
+
+func (db *FirestoreDB) GetApp(ctx context.Context, name string) (AppRecord, error) {
+	doc, err := db.AppsCollection().Doc(name).Get(ctx)
+	if err != nil {
+		return AppRecord{}, err
+	}
+	var d appDoc
+	if err := doc.DataTo(&d); err != nil {
+		return AppRecord{}, err
+	}
+	return AppRecord{
+		Name:        doc.Ref.ID,
+		DisplayName: d.DisplayName,
+		Description: d.Description,
+		CreatedAt:   d.CreatedAt,
+	}, nil
+}
+
+func (db *FirestoreDB) CreateApp(ctx context.Context, name, displayName, description string) (AppRecord, error) {
+	normalized, err := NormalizeAppName(name)
+	if err != nil {
+		return AppRecord{}, err
+	}
+	if displayName == "" {
+		displayName = normalized
+	}
+	now := time.Now().UTC()
+	record := AppRecord{
+		Name:        normalized,
+		DisplayName: displayName,
+		Description: description,
+		CreatedAt:   now,
+	}
+	_, err = db.AppsCollection().Doc(normalized).Create(ctx, appDoc{
+		DisplayName: record.DisplayName,
+		Description: record.Description,
+		CreatedAt:   record.CreatedAt,
+	})
+	return record, err
+}
+
+func (db *FirestoreDB) ListTodos(ctx context.Context, appName string) ([]Todo, error) {
+	iter := db.TodosCollection(appName).OrderBy("createdAt", firestore.Desc).Documents(ctx)
 	defer iter.Stop()
 
 	var todos []Todo
@@ -59,24 +166,20 @@ func (s *FirestoreStore) List(ctx context.Context) ([]Todo, error) {
 	return todos, nil
 }
 
-func (s *FirestoreStore) Create(ctx context.Context, title string) (Todo, error) {
-	ref := s.col.NewDoc()
+func (db *FirestoreDB) CreateTodo(ctx context.Context, appName, title string) (Todo, error) {
+	ref := db.TodosCollection(appName).NewDoc()
 	t := Todo{
 		ID:        ref.ID,
 		Title:     title,
 		Done:      false,
 		CreatedAt: time.Now().UTC(),
 	}
-	_, err := ref.Set(ctx, todoDoc{
-		Title:     t.Title,
-		Done:      t.Done,
-		CreatedAt: t.CreatedAt,
-	})
+	_, err := ref.Set(ctx, todoDoc{Title: t.Title, Done: t.Done, CreatedAt: t.CreatedAt})
 	return t, err
 }
 
-func (s *FirestoreStore) Toggle(ctx context.Context, id string) (Todo, error) {
-	ref := s.col.Doc(id)
+func (db *FirestoreDB) ToggleTodo(ctx context.Context, appName, id string) (Todo, error) {
+	ref := db.TodosCollection(appName).Doc(id)
 	doc, err := ref.Get(ctx)
 	if err != nil {
 		return Todo{}, err
@@ -86,19 +189,29 @@ func (s *FirestoreStore) Toggle(ctx context.Context, id string) (Todo, error) {
 		return Todo{}, err
 	}
 	d.Done = !d.Done
-	_, err = ref.Set(ctx, d)
-	if err != nil {
+	if _, err := ref.Set(ctx, d); err != nil {
 		return Todo{}, err
 	}
-	return Todo{
-		ID:        id,
-		Title:     d.Title,
-		Done:      d.Done,
-		CreatedAt: d.CreatedAt,
-	}, nil
+	return Todo{ID: id, Title: d.Title, Done: d.Done, CreatedAt: d.CreatedAt}, nil
 }
 
-func (s *FirestoreStore) Delete(ctx context.Context, id string) error {
-	_, err := s.col.Doc(id).Delete(ctx)
+func (db *FirestoreDB) DeleteTodo(ctx context.Context, appName, id string) error {
+	_, err := db.TodosCollection(appName).Doc(id).Delete(ctx)
 	return err
+}
+
+func (db *FirestoreDB) CountTodos(ctx context.Context, appName string) (int, error) {
+	iter := db.TodosCollection(appName).Documents(ctx)
+	defer iter.Stop()
+	n := 0
+	for {
+		_, err := iter.Next()
+		if err == iterator.Done {
+			return n, nil
+		}
+		if err != nil {
+			return 0, err
+		}
+		n++
+	}
 }
