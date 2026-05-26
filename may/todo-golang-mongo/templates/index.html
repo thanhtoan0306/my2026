@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Todo List</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Todo List</h1>
+    <p class="subtitle">Go + MongoDB</p>
+
+    {{if .Error}}
+    <p class="error">{{.Error}}</p>
+    {{end}}
+
+    <form class="add-form" method="post" action="/todos">
+      <input type="text" name="title" placeholder="What needs to be done?" autofocus required>
+      <button type="submit">Add</button>
+    </form>
+
+    {{if .Todos}}
+    <ul class="todo-list">
+      {{range .Todos}}
+      <li class="todo-item{{if .Done}} done{{end}}">
+        <form method="post" action="/todos/{{.ID.Hex}}/toggle">
+          <button type="submit" class="check" title="Toggle done">{{if .Done}}&#10003;{{else}}&#9675;{{end}}</button>
+        </form>
+        <span class="title">{{.Title}}</span>
+        <form method="post" action="/todos/{{.ID.Hex}}/delete">
+          <button type="submit" class="delete" title="Delete">&times;</button>
+        </form>
+      </li>
+      {{end}}
+    </ul>
+    {{else}}
+    <p class="empty">No todos yet. Add one above.</p>
+    {{end}}
+  </main>
+</body>
+</html>

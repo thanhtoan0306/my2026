@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sticky Notes — All-in-One</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 20px; }
+    h1 { font-size: 1.35rem; margin: 0 0 6px; }
+    .sub { color: #94a3b8; font-size: 0.85rem; margin-bottom: 16px; }
+    .bar {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      padding: 10px 14px; border-radius: 10px; margin-bottom: 16px;
+      font-size: 0.85rem; border: 1px solid #334155;
+    }
+    .bar.ok { background: #052e1a; border-color: #166534; color: #86efac; }
+    .bar.warn { background: #422006; border-color: #a16207; color: #fde68a; }
+    .bar.err { background: #450a0a; border-color: #b91c1c; color: #fecaca; }
+    .bar code { background: #1e293b; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+    .panel {
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      padding: 16px; margin-bottom: 16px;
+    }
+    label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    input, textarea {
+      width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #475569;
+      background: #0f172a; color: #f1f5f9; font: inherit; margin-bottom: 10px;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    button {
+      padding: 10px 18px; border: none; border-radius: 8px; font-weight: 600;
+      cursor: pointer; background: #f59e0b; color: #0f172a;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .notes { display: grid; gap: 10px; }
+    .note {
+      background: #fef3c7; color: #1c1917; border-radius: 10px; padding: 14px 40px 14px 14px;
+      position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .note h3 { margin: 0 0 6px; font-size: 1rem; }
+    .note p { margin: 0; font-size: 0.9rem; white-space: pre-wrap; }
+    .note .meta { font-size: 0.7rem; color: #57534e; margin-top: 8px; }
+    .note .del {
+      position: absolute; top: 8px; right: 8px; width: 28px; height: 28px;
+      border: none; border-radius: 6px; background: rgba(0,0,0,0.12); color: #44403c;
+      cursor: pointer; font-size: 1rem; line-height: 1;
+    }
+    .empty { color: #64748b; text-align: center; padding: 24px; }
+    #rulesHelp { display: none; margin-top: 12px; }
+    #rulesHelp pre {
+      background: #0f172a; padding: 12px; border-radius: 8px; overflow-x: auto;
+      font-size: 0.7rem; border: 1px solid #475569; margin: 8px 0;
+    }
+    #rulesHelp a { color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Sticky Notes (Firestore realtime)</h1>
+    <p class="sub">All-in-one — config embedded, auto login, no setup form.</p>
+
+    <div id="statusBar" class="bar warn">Connecting…</div>
+
+    <div id="rulesHelp">
+      <strong>One thing you must do in Firebase Console (cannot be done from HTML):</strong>
+      <p>Replace deny-all rules → paste below → <strong>Publish</strong></p>
+      <pre id="rulesText"></pre>
+      <p><a id="rulesLink" href="#" target="_blank" rel="noopener">Open Firestore Rules</a> ·
+         Also enable <strong>Authentication → Anonymous</strong></p>
+    </div>
+
+    <div class="panel">
+      <label>Title</label>
+      <input id="title" placeholder="Note title" />
+      <label>Content</label>
+      <textarea id="content" placeholder="Note content"></textarea>
+      <button id="addBtn" type="button" disabled>Add note</button>
+    </div>
+
+    <div class="panel">
+      <div class="sub" style="margin:0 0 10px">Notes (<span id="count">0</span>)</div>
+      <div id="notes" class="notes"></div>
+      <p id="empty" class="empty">No notes yet.</p>
+    </div>
+  </div>
+
+  <script type="module">
+    // ─── Your Firebase config (embedded) ───
+    const firebaseConfig = {
+      apiKey: "AIzaSyBnbsERniyk5hE2Synv8RuBfA15RYxEqlQ",
+      authDomain: "gen-lang-client-0298822444.firebaseapp.com",
+      projectId: "gen-lang-client-0298822444",
+      storageBucket: "gen-lang-client-0298822444.firebasestorage.app",
+      messagingSenderId: "1047224737905",
+      appId: "1:1047224737905:web:d31c43ac59be85d28a3bd0"
+    };
+
+    // Path segment for notes (same as projectId in your main dashboard)
+    const NOTES_APP_ID = "gen-lang-client-0298822444";
+
+    const FIRESTORE_RULES = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /artifacts/{appId}/public/data/notes/{noteId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}`;
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+    import {
+      getFirestore, collection, addDoc, deleteDoc, doc,
+      onSnapshot, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+    const $ = (id) => document.getElementById(id);
+    const statusBar = $("statusBar");
+    const rulesHelp = $("rulesHelp");
+    const notesEl = $("notes");
+    const emptyEl = $("empty");
+    const addBtn = $("addBtn");
+
+    $("rulesText").textContent = FIRESTORE_RULES;
+    $("rulesLink").href = `https://console.firebase.google.com/project/${firebaseConfig.projectId}/firestore/rules`;
+
+    let db, auth, user, unsub;
+    const notes = new Map();
+
+    function setStatus(kind, msg) {
+      statusBar.className = "bar " + kind;
+      statusBar.innerHTML = msg;
+    }
+
+    function renderNote(id, data) {
+      let el = notesEl.querySelector(`[data-id="${id}"]`);
+      if (!el) {
+        el = document.createElement("div");
+        el.className = "note";
+        el.dataset.id = id;
+        el.innerHTML = `<button class="del" type="button" aria-label="Delete">×</button><h3></h3><p></p><div class="meta"></div>`;
+        el.querySelector(".del").onclick = () =>
+          deleteDoc(doc(db, "artifacts", NOTES_APP_ID, "public", "data", "notes", id));
+        notesEl.appendChild(el);
+      }
+      el.querySelector("h3").textContent = data.title || "(no title)";
+      el.querySelector("p").textContent = data.content || "";
+      const t = data.createdAt?.toDate?.() ?? null;
+      el.querySelector(".meta").textContent = t ? t.toLocaleString() : "syncing…";
+    }
+
+    function syncUI() {
+      const n = notes.size;
+      $("count").textContent = n;
+      emptyEl.style.display = n ? "none" : "block";
+      const items = [...notesEl.children].sort((a, b) => {
+        const ta = notes.get(a.dataset.id)?.createdAt?.seconds ?? 0;
+        const tb = notes.get(b.dataset.id)?.createdAt?.seconds ?? 0;
+        return tb - ta;
+      });
+      items.forEach((el) => notesEl.appendChild(el));
+    }
+
+    function listenNotes() {
+      const col = collection(db, "artifacts", NOTES_APP_ID, "public", "data", "notes");
+      unsub = onSnapshot(col, (snap) => {
+        for (const ch of snap.docChanges()) {
+          const id = ch.doc.id;
+          if (ch.type === "removed") {
+            notes.delete(id);
+            notesEl.querySelector(`[data-id="${id}"]`)?.remove();
+          } else {
+            notes.set(id, ch.doc.data());
+            renderNote(id, ch.doc.data());
+          }
+        }
+        syncUI();
+        rulesHelp.style.display = "none";
+        setStatus("ok", `Cloud ready · signed in as <code>${user.uid.slice(0, 12)}…</code>`);
+      }, (err) => {
+        console.error(err);
+        rulesHelp.style.display = "block";
+        if (err.code === "permission-denied") {
+          setStatus("err", "Permission denied — publish Firestore rules below (one-time in Console).");
+        } else {
+          setStatus("err", `Firestore error: ${err.message}`);
+        }
+        addBtn.disabled = true;
+      });
+    }
+
+    async function boot() {
+      try {
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        user = await new Promise((resolve, reject) => {
+          const off = onAuthStateChanged(auth, (u) => {
+            if (u) { off(); resolve(u); }
+          });
+          signInAnonymously(auth).catch(reject);
+        });
+
+        addBtn.disabled = false;
+        setStatus("ok", `Signed in · <code>${user.uid.slice(0, 16)}…</code>`);
+        listenNotes();
+      } catch (e) {
+        console.error(e);
+        rulesHelp.style.display = "block";
+        const code = e.code || "";
+        if (code.includes("admin-restricted") || code.includes("operation-not-allowed")) {
+          setStatus("err", "Anonymous Auth blocked — enable Anonymous in Firebase Console → Authentication.");
+        } else {
+          setStatus("err", `Auth failed: ${e.message || code}`);
+        }
+      }
+    }
+
+    addBtn.onclick = async () => {
+      const title = $("title").value.trim();
+      const content = $("content").value.trim();
+      if (!title && !content) return;
+      await addDoc(collection(db, "artifacts", NOTES_APP_ID, "public", "data", "notes"), {
+        title: title || "(no title)",
+        content,
+        authorId: user.uid,
+        createdAt: serverTimestamp()
+      });
+      $("title").value = "";
+      $("content").value = "";
+    };
+
+    boot();
+  </script>
+</body>
+</html>

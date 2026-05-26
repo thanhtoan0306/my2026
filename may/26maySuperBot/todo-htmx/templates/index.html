@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Todo — Go SSR + HTMX</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44YQLn9zBdKfL4+Fk3iWVudjlBurrVXSF9r4Cwm2afnY2JY" crossorigin="anonymous"></script>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Todo List</h1>
+      <p class="subtitle">Go · HTMX · Firestore (server-side save)</p>
+    </header>
+
+    <details class="firebase-guide">
+      <summary>View real data in Firebase Console</summary>
+      <div class="firebase-guide-body">
+        <p>Todos from this app are stored in Firestore at:</p>
+        <p class="firebase-path"><code>{{.FirestorePath}}</code></p>
+        <p class="firebase-meta">Project: <code>{{.ProjectID}}</code></p>
+
+        <ol>
+          <li>Open <a href="{{.ConsoleFirestoreURL}}" target="_blank" rel="noopener">Firestore → Data</a> (project <code>{{.ProjectID}}</code>).</li>
+          <li>In the collection tree, expand:
+            <code>artifacts</code> → <code>{{.AppID}}</code> → <code>public</code> → <code>data</code> → <code>todos</code>.
+          </li>
+          <li>Click a document under <code>todos</code> — fields: <code>title</code>, <code>done</code>, <code>createdAt</code>.</li>
+          <li>Add a todo here, then refresh the Console (or click a collection again) to see the new document.</li>
+        </ol>
+
+        <p class="firebase-links">
+          <a href="{{.ConsoleFirestoreURL}}" target="_blank" rel="noopener">Open Firestore Data</a>
+          ·
+          <a href="{{.ConsoleProjectURL}}/firestore/rules" target="_blank" rel="noopener">Rules</a>
+          ·
+          <a href="{{.ConsoleProjectURL}}/authentication/providers" target="_blank" rel="noopener">Authentication</a>
+        </p>
+      </div>
+    </details>
+
+    <form
+      class="add-form"
+      method="post"
+      action="/todos"
+      hx-post="/todos"
+      hx-target="#todo-list"
+      hx-swap="innerHTML"
+    >
+      <input
+        type="text"
+        name="title"
+        placeholder="What needs to be done?"
+        autocomplete="off"
+        autofocus
+        required
+      >
+      <button type="submit">Add</button>
+    </form>
+
+    <div id="todo-list">
+      {{template "todo_list" .}}
+    </div>
+  </main>
+</body>
+</html>

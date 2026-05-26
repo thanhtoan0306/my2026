@@ -1,0 +1,6 @@
+.idea/config.json
+firebase-sticky-notes/config.json
+todo-htmx/config.json
+todo-htmx/serviceAccount.json
+**/*-firebase-adminsdk-*.json
+.env

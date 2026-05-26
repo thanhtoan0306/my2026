@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simple Fast Sticky Notes (Firestore)</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1220;
+        --panel: #101a2f;
+        --muted: #93a4c7;
+        --text: #e7eeff;
+        --border: #223254;
+        --good: #20c997;
+        --bad: #ff6b6b;
+        --warn: #ffb020;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        background: radial-gradient(1200px 800px at 10% -10%, #1b2a52 0%, transparent 55%),
+                    radial-gradient(1000px 700px at 120% 0%, #2a1b52 0%, transparent 55%),
+                    var(--bg);
+        color: var(--text);
+      }
+      a { color: #7cc4ff; }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 24px; }
+      .row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+      @media (min-width: 900px) { .row { grid-template-columns: 340px 1fr; } }
+      .card {
+        background: color-mix(in oklab, var(--panel), transparent 5%);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+        padding: 16px;
+      }
+      .h {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .title { font-weight: 800; letter-spacing: 0.2px; }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 12px;
+        user-select: none;
+      }
+      .dot { width: 8px; height: 8px; border-radius: 999px; background: #607099; }
+      .pill.good { border-color: color-mix(in oklab, var(--good), var(--border) 70%); color: color-mix(in oklab, var(--good), white 10%); }
+      .pill.good .dot { background: var(--good); }
+      .pill.bad { border-color: color-mix(in oklab, var(--bad), var(--border) 70%); color: color-mix(in oklab, var(--bad), white 10%); }
+      .pill.bad .dot { background: var(--bad); }
+      .pill.warn { border-color: color-mix(in oklab, var(--warn), var(--border) 70%); color: color-mix(in oklab, var(--warn), white 10%); }
+      .pill.warn .dot { background: var(--warn); }
+      .small { font-size: 12px; color: var(--muted); line-height: 1.4; }
+      label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 6px; }
+      input, textarea, button {
+        font: inherit;
+      }
+      input, textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #0c1528;
+        color: var(--text);
+        border: 1px solid var(--border);
+        outline: none;
+      }
+      textarea { min-height: 96px; resize: vertical; }
+      input:focus, textarea:focus { border-color: color-mix(in oklab, #7cc4ff, var(--border) 55%); box-shadow: 0 0 0 3px rgba(124,196,255,0.12); }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #142244;
+        color: var(--text);
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .btn.primary {
+        background: linear-gradient(135deg, #ffb020 0%, #ff7a59 45%, #ff4d8b 100%);
+        border-color: transparent;
+        color: #140b00;
+      }
+      .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+      .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+      .list { display: grid; grid-template-columns: 1fr; gap: 12px; }
+      @media (min-width: 640px) { .list { grid-template-columns: 1fr 1fr; } }
+      .note {
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: rgba(12, 21, 40, 0.9);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+      .note::before {
+        content: "";
+        position: absolute;
+        inset: -40px -40px auto auto;
+        width: 180px;
+        height: 180px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 35% 35%, rgba(255,176,32,0.28), transparent 60%);
+        pointer-events: none;
+      }
+      .note h3 { margin: 0; font-size: 16px; font-weight: 900; letter-spacing: 0.2px; }
+      .note p { margin: 0; white-space: pre-wrap; color: color-mix(in oklab, var(--text), var(--muted) 25%); line-height: 1.35; }
+      .meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); }
+      .x {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: rgba(10, 16, 30, 0.65);
+        color: var(--text);
+        cursor: pointer;
+      }
+      .x:hover { border-color: color-mix(in oklab, var(--bad), var(--border) 60%); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      .err { color: color-mix(in oklab, var(--bad), white 10%); font-weight: 700; margin-top: 10px; }
+      .hidden { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="h">
+        <div>
+          <div class="title">Simple Fast Sticky Notes</div>
+          <div class="small">Firestore path: <span id="pathHint" class="mono">/artifacts/{projectId}/public/data/notes</span></div>
+        </div>
+        <div id="statusPill" class="pill warn"><span class="dot"></span><span id="statusText">Booting…</span></div>
+      </div>
+
+      <div class="row">
+        <div class="card">
+          <div class="title">Firebase config</div>
+          <div class="small">
+            This page will try to auto-load <span class="mono">config.json</span> next to this HTML when served over HTTP.
+            If missing, paste the JSON below.
+          </div>
+
+          <label for="configInput">firebaseConfig (JSON)</label>
+          <textarea id="configInput" class="mono" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+
+          <div class="btnrow">
+            <button id="btnConnect" class="btn primary" type="button">Connect</button>
+            <button id="btnClear" class="btn" type="button">Clear</button>
+          </div>
+
+          <div id="configError" class="err hidden"></div>
+
+          <details class="small" style="margin-top:12px">
+            <summary style="cursor:pointer;color:#7cc4ff">Fix: Missing or insufficient permissions</summary>
+            <p style="margin:8px 0 0">
+              1) Firebase Console → <strong>Authentication</strong> → enable <strong>Anonymous</strong><br />
+              2) Firebase Console → <strong>Firestore → Rules</strong> → paste rules below → <strong>Publish</strong><br />
+              3) Reload this page
+            </p>
+            <pre id="rulesSnippet" class="mono" style="white-space:pre-wrap;background:#0c1528;border:1px solid var(--border);padding:10px;border-radius:12px;font-size:11px;margin:8px 0"></pre>
+            <div class="btnrow">
+              <button id="btnCopyRules" class="btn" type="button">Copy rules</button>
+              <a id="rulesConsoleLink" class="btn" href="#" target="_blank" rel="noopener">Open Rules in Console</a>
+            </div>
+          </details>
+
+          <div style="height: 14px"></div>
+          <div class="title">Add note</div>
+          <label for="titleInput">Title</label>
+          <input id="titleInput" placeholder="Title…" />
+          <label for="contentInput">Content</label>
+          <textarea id="contentInput" placeholder="Content…"></textarea>
+          <div class="btnrow">
+            <button id="btnAdd" class="btn primary" type="button" disabled>Add</button>
+          </div>
+          <div class="small" style="margin-top:10px">
+            Auth: <span id="uid" class="mono">not signed in</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="h" style="margin-bottom: 10px">
+            <div class="title">Notes</div>
+            <div class="small"><span id="count">0</span> items</div>
+          </div>
+          <div id="list" class="list"></div>
+          <div id="empty" class="small" style="padding: 18px; border: 1px dashed var(--border); border-radius: 16px; text-align:center;">
+            No notes yet. Connect + add your first note.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp, getApps, deleteApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+      import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+      import {
+        getFirestore,
+        collection,
+        addDoc,
+        deleteDoc,
+        doc,
+        onSnapshot,
+        serverTimestamp,
+        query,
+        orderBy,
+        limit
+      } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+      const STORAGE_KEY = "simple_fast_firebase_config";
+
+      const els = {
+        statusPill: document.getElementById("statusPill"),
+        statusText: document.getElementById("statusText"),
+        configInput: document.getElementById("configInput"),
+        configError: document.getElementById("configError"),
+        btnConnect: document.getElementById("btnConnect"),
+        btnClear: document.getElementById("btnClear"),
+        btnAdd: document.getElementById("btnAdd"),
+        titleInput: document.getElementById("titleInput"),
+        contentInput: document.getElementById("contentInput"),
+        uid: document.getElementById("uid"),
+        list: document.getElementById("list"),
+        empty: document.getElementById("empty"),
+        count: document.getElementById("count"),
+        pathHint: document.getElementById("pathHint"),
+        rulesSnippet: document.getElementById("rulesSnippet"),
+        btnCopyRules: document.getElementById("btnCopyRules"),
+        rulesConsoleLink: document.getElementById("rulesConsoleLink")
+      };
+
+      const FIRESTORE_RULES = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /artifacts/{appId}/public/data/notes/{noteId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}`;
+
+      let app = null;
+      let auth = null;
+      let db = null;
+      let unsub = null;
+      let currentUser = null;
+      let notesAppId = null;
+      const notesById = new Map();
+
+      function updateRulesHelp(projectId) {
+        els.pathHint.textContent = `/artifacts/${projectId}/public/data/notes`;
+        els.rulesSnippet.textContent = FIRESTORE_RULES;
+        els.rulesConsoleLink.href = `https://console.firebase.google.com/project/${projectId}/firestore/rules`;
+      }
+
+      function setStatus(kind, text) {
+        els.statusPill.classList.remove("good", "bad", "warn");
+        els.statusPill.classList.add(kind);
+        els.statusText.textContent = text;
+      }
+
+      function showConfigError(msg) {
+        if (!msg) {
+          els.configError.classList.add("hidden");
+          els.configError.textContent = "";
+          return;
+        }
+        els.configError.textContent = msg;
+        els.configError.classList.remove("hidden");
+      }
+
+      function validateConfig(c) {
+        const required = ["apiKey", "authDomain", "projectId", "appId"];
+        if (!c || typeof c !== "object") throw new Error("Config must be valid JSON object.");
+        for (const k of required) if (!c[k] || typeof c[k] !== "string") throw new Error(`Missing required field: ${k}`);
+        return c;
+      }
+
+      async function loadConfigFromFile() {
+        try {
+          const url = new URL("config.json", window.location.href);
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) return null;
+          return validateConfig(await res.json());
+        } catch {
+          return null;
+        }
+      }
+
+      function loadConfigFromStorage() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? validateConfig(JSON.parse(raw)) : null;
+        } catch {
+          return null;
+        }
+      }
+
+      async function teardown() {
+        if (unsub) { unsub(); unsub = null; }
+        notesById.clear();
+        els.list.innerHTML = "";
+        renderEmpty();
+        currentUser = null;
+        els.uid.textContent = "not signed in";
+        els.btnAdd.disabled = true;
+        app = null; auth = null; db = null;
+        for (const a of getApps()) await deleteApp(a);
+      }
+
+      function renderEmpty() {
+        const n = notesById.size;
+        els.count.textContent = String(n);
+        els.empty.classList.toggle("hidden", n !== 0);
+      }
+
+      function noteEl(id) {
+        return els.list.querySelector(`[data-id="${CSS.escape(id)}"]`);
+      }
+
+      function renderNote(id, data) {
+        let el = noteEl(id);
+        if (!el) {
+          el = document.createElement("div");
+          el.className = "note";
+          el.dataset.id = id;
+          el.innerHTML = `
+            <button class="x" title="Delete">✕</button>
+            <h3></h3>
+            <p></p>
+            <div class="meta">
+              <span class="mono time"></span>
+              <span class="mono author"></span>
+            </div>
+          `;
+          el.querySelector(".x").addEventListener("click", async () => {
+            try {
+              await deleteDoc(doc(db, "artifacts", notesAppId, "public", "data", "notes", id));
+            } catch (e) {
+              console.error(e);
+              alert("Delete failed. Check rules/console.");
+            }
+          });
+          els.list.appendChild(el);
+        }
+        el.querySelector("h3").textContent = data.title || "(no title)";
+        el.querySelector("p").textContent = data.content || "";
+        el.querySelector(".author").textContent = data.authorId ? `uid:${data.authorId.slice(0, 8)}` : "uid:—";
+        const t = data.createdAt?.toDate ? data.createdAt.toDate() : null;
+        el.querySelector(".time").textContent = t ? t.toLocaleString() : "syncing…";
+      }
+
+      function sortDom() {
+        const items = Array.from(els.list.children);
+        items.sort((a, b) => {
+          const da = notesById.get(a.dataset.id);
+          const dbb = notesById.get(b.dataset.id);
+          const ta = da?.createdAt?.seconds ?? 0;
+          const tb = dbb?.createdAt?.seconds ?? 0;
+          return tb - ta;
+        });
+        for (const it of items) els.list.appendChild(it);
+      }
+
+      function attachListener() {
+        if (!currentUser) {
+          setStatus("bad", "Not signed in");
+          showConfigError("Auth missing. Enable Anonymous sign-in in Firebase Authentication.");
+          return;
+        }
+        const col = collection(db, "artifacts", notesAppId, "public", "data", "notes");
+        const q = query(col, orderBy("createdAt", "desc"), limit(50));
+        unsub = onSnapshot(q, (snap) => {
+          for (const ch of snap.docChanges()) {
+            const id = ch.doc.id;
+            if (ch.type === "removed") {
+              notesById.delete(id);
+              noteEl(id)?.remove();
+            } else {
+              const data = ch.doc.data();
+              notesById.set(id, data);
+              renderNote(id, data);
+            }
+          }
+          sortDom();
+          renderEmpty();
+        }, (err) => {
+          console.error(err);
+          setStatus("bad", "Firestore permission error");
+          const code = err?.code || "";
+          const hint = code === "permission-denied"
+            ? "Publish Firestore rules (see section below) and enable Anonymous Auth. Rules must be Published in Console, not only saved locally."
+            : (err?.message || "Firestore error");
+          showConfigError(hint);
+        });
+      }
+
+      async function connectWithConfig(config) {
+        await teardown();
+        setStatus("warn", "Connecting…");
+        showConfigError("");
+        const validated = validateConfig(config);
+        notesAppId = validated.projectId;
+        updateRulesHelp(validated.projectId);
+        app = initializeApp(validated);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        return new Promise((resolve, reject) => {
+          const unsubAuth = onAuthStateChanged(auth, async (u) => {
+            currentUser = u;
+            if (u) {
+              els.uid.textContent = u.uid;
+              els.btnAdd.disabled = false;
+              setStatus("good", "Signed in");
+              attachListener();
+              unsubAuth();
+              resolve(true);
+            }
+          }, (e) => {
+            unsubAuth();
+            reject(e);
+          });
+
+          signInAnonymously(auth).catch((e) => {
+            console.error(e);
+            setStatus("bad", "Auth failed");
+            reject(e);
+          });
+        });
+      }
+
+      async function autoInit() {
+        setStatus("warn", "Loading config…");
+        const fileCfg = await loadConfigFromFile();
+        const storedCfg = loadConfigFromStorage();
+        const cfg = fileCfg || storedCfg;
+        if (cfg) {
+          els.configInput.value = JSON.stringify(cfg, null, 2);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+          try {
+            await connectWithConfig(cfg);
+          } catch (e) {
+            const code = e?.code || "";
+            showConfigError(code ? `${code}: ${e?.message || "Auth error"}` : (e?.message || "Auth error"));
+          }
+        } else {
+          setStatus("warn", "Config required");
+        }
+      }
+
+      els.btnConnect.addEventListener("click", async () => {
+        try {
+          const cfg = validateConfig(JSON.parse(els.configInput.value.trim()));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+          await connectWithConfig(cfg);
+        } catch (e) {
+          showConfigError(e instanceof SyntaxError ? "Invalid JSON. Paste firebaseConfig as pure JSON (no const/semicolon)." : (e?.message || "Config error"));
+          setStatus("bad", "Config error");
+        }
+      });
+
+      els.btnClear.addEventListener("click", async () => {
+        localStorage.removeItem(STORAGE_KEY);
+        els.configInput.value = "";
+        showConfigError("");
+        await teardown();
+        setStatus("warn", "Cleared");
+      });
+
+      els.btnAdd.addEventListener("click", async () => {
+        if (!db || !currentUser) return;
+        const title = els.titleInput.value.trim();
+        const content = els.contentInput.value.trim();
+        if (!title && !content) return;
+        try {
+          await addDoc(collection(db, "artifacts", notesAppId, "public", "data", "notes"), {
+            title: title || "(no title)",
+            content,
+            authorId: currentUser.uid,
+            createdAt: serverTimestamp()
+          });
+          els.titleInput.value = "";
+          els.contentInput.value = "";
+        } catch (e) {
+          console.error(e);
+          alert("Add failed. Check rules/console.");
+        }
+      });
+
+      els.btnCopyRules.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(FIRESTORE_RULES);
+          setStatus("good", "Rules copied");
+        } catch {
+          alert("Copy failed. Select the rules text manually.");
+        }
+      });
+
+      autoInit();
+    </script>
+  </body>
+</html>
+
