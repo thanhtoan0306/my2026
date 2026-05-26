@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #4ade80;
+      --warn: #fbbf24;
+      --warn-bg: #422006;
+      --warn-border: #b45309;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 2rem 1rem 3rem;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 52rem; margin: 0 auto; }
+    h1 { color: var(--accent); margin: 0 0 0.25rem; font-size: 1.75rem; }
+    .meta { color: var(--muted); font-size: 0.875rem; margin-bottom: 2rem; }
+    .badge {
+      display: inline-block;
+      background: #14532d;
+      color: var(--green);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      margin-bottom: 1.5rem;
+    }
+    .steps { display: flex; flex-direction: column; gap: 1rem; }
+    .step {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.25rem 1rem;
+    }
+    .step-head {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step h2 { margin: 0; font-size: 1.05rem; }
+    .step p { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.9rem; }
+    .step.warn {
+      border-color: var(--warn-border);
+      background: var(--warn-bg);
+    }
+    .step.warn .step-num {
+      background: var(--warn);
+      color: #1c1917;
+    }
+    .step.warn h2 { color: var(--warn); }
+    .err {
+      margin: 0 0 0.75rem;
+      padding: 0.65rem 0.85rem;
+      background: #1c1917;
+      border-left: 3px solid var(--warn);
+      border-radius: 0.25rem;
+      font-size: 0.78rem;
+      color: #fcd34d;
+      word-break: break-word;
+    }
+    pre {
+      margin: 0;
+      padding: 0.85rem 1rem;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: #cbd5e1;
+    }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .hint {
+      margin-top: 1.5rem;
+      padding: 0.85rem 1rem;
+      border-radius: 0.5rem;
+      background: #172554;
+      border: 1px solid #1e40af;
+      font-size: 0.85rem;
+      color: #bfdbfe;
+    }
+    .hint strong { color: #93c5fd; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <span class="badge">SSR · Go · Docker</span>
+    <h1>{{.Message}}</h1>
+    <p class="meta">Render server lúc {{.RenderedAt}} · Mở <a href="http://localhost:8080">localhost:8080</a></p>
+
+    <div class="steps">
+      <section class="step">
+        <div class="step-head">
+          <span class="step-num">1</span>
+          <h2>Khởi tạo lần đầu</h2>
+        </div>
+        <p>Cài Docker Desktop, clone repo, vào thư mục project, build + chạy lần đầu.</p>
+        <pre><code>cd {{.ProjectDir}}
+docker compose up --build</code></pre>
+        <p>Mở trình duyệt: <code>http://localhost:8080</code></p>
+      </section>
+
+      <section class="step">
+        <div class="step-head">
+          <span class="step-num">2</span>
+          <h2>Chạy lần sau</h2>
+        </div>
+        <p>Đã build image rồi — chỉ cần bật container (nhanh hơn, không cần <code>--build</code> trừ khi đổi code).</p>
+        <pre><code>cd {{.ProjectDir}}
+docker compose up -d
+docker compose logs -f</code></pre>
+        <p>Dừng: <code>docker compose down</code></p>
+        <p>Chạy từ image trên Docker Hub (máy khác):</p>
+        <pre><code>docker pull {{.DockerImage}}
+docker run -d -p 8080:8080 --name ssr-hello {{.DockerImage}}</code></pre>
+      </section>
+
+      <section class="step">
+        <div class="step-head">
+          <span class="step-num">3</span>
+          <h2>Đẩy lên Docker Hub</h2>
+        </div>
+        <p>Đăng nhập Hub, tag image, push. Thay <code>your-dockerhub-user</code> bằng username của bạn.</p>
+        <pre><code>cd {{.ProjectDir}}
+docker login
+docker build -t {{.DockerImage}} .
+docker push {{.DockerImage}}</code></pre>
+        <p>Sau khi push, người khác chỉ cần <code>docker pull {{.DockerImage}}</code> rồi <code>docker run</code> như bước 2.</p>
+      </section>
+
+      <section class="step">
+        <div class="step-head">
+          <span class="step-num">4</span>
+          <h2>Offline — bản Docker trong <code>output/</code></h2>
+        </div>
+        <p>Export image ra file <code>{{.OfflineTar}}</code>, copy cả folder project (hoặc chỉ <code>output/</code> + <code>scripts/</code>) sang máy không có mạng.</p>
+        <p><strong>Máy có mạng — tạo bản offline:</strong></p>
+        <pre><code>cd {{.ProjectDir}}
+./scripts/export-offline.sh</code></pre>
+        <p><strong>Máy offline — load &amp; chạy (không cần Hub / pull):</strong></p>
+        <pre><code>cd {{.ProjectDir}}
+./scripts/run-offline.sh</code></pre>
+        <p>Thủ công:</p>
+        <pre><code>docker load -i {{.OfflineTar}}
+docker run -d -p 8080:8080 --name ssr-hello-offline {{.OfflineImage}}</code></pre>
+        <p>Image tag: <code>{{.OfflineImage}}</code></p>
+      </section>
+
+      <section class="step warn">
+        <div class="step-head">
+          <span class="step-num">!</span>
+          <h2>Case: Docker daemon chưa chạy</h2>
+        </div>
+        <p>Gặp lỗi khi <code>docker compose up</code> — Docker Desktop tắt hoặc chưa khởi động xong:</p>
+        <p class="err">Cannot connect to the Docker daemon at unix:///Users/fe.tony/.docker/run/docker.sock. Is the docker daemon running?</p>
+        <p><strong>Cách xử lý (macOS):</strong></p>
+        <pre><code># 1. Mở Docker Desktop, đợi icon cá voi sáng / "Docker Desktop is running"
+open -a Docker
+
+# 2. Kiểm tra daemon đã sẵn sàng
+docker info
+
+# 3. Chạy lại app
+cd {{.ProjectDir}}
+docker compose up -d</code></pre>
+        <p>Hoặc gộp một lệnh:</p>
+        <pre><code>open -a Docker && sleep 5 && cd {{.ProjectDir}} && docker compose up -d</code></pre>
+        <p>Nếu vẫn lỗi: mở app <strong>Docker Desktop</strong> thủ công từ Applications, đợi ~30s rồi thử lại.</p>
+      </section>
+    </div>
+
+    <p class="hint">
+      <strong>Gợi ý:</strong> Đặt tên image qua biến môi trường
+      <code>DOCKER_IMAGE=tenban/docker-ssr-hello:latest</code>
+      khi chạy app hoặc trong file <code>.env</code>.
+    </p>
+  </div>
+</body>
+</html>
