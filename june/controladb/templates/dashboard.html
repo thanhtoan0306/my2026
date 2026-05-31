@@ -1,0 +1,484 @@
+{{define "dashboard"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Control ADB</title>
+  <style>
+    :root {
+      --bg: #0a0d11;
+      --panel: #12161e;
+      --border: #232a38;
+      --text: #eef0f4;
+      --muted: #8891a5;
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --err: #f87171;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+    }
+    .page {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-height: 100dvh;
+      padding: 10px 12px;
+      gap: 8px;
+      max-width: 1000px;
+      margin-inline: auto;
+    }
+    .header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    h1 { font-size: 1.15rem; margin: 0; }
+    .subtitle { color: var(--muted); margin: 0; font-size: 0.75rem; }
+    .output-panel {
+      flex-shrink: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      max-height: min(22vh, 160px);
+    }
+    .output-panel h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 0 0 6px;
+      flex-shrink: 0;
+    }
+    .output {
+      flex: 1;
+      min-height: 48px;
+      background: #06080c;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: auto;
+    }
+    .output.empty { color: var(--muted); font-style: italic; }
+    .output.err { border-color: #7f1d1d; color: var(--err); font-style: normal; }
+    .terminal-bar {
+      flex-shrink: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+    .terminal-bar h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 0 0 6px;
+    }
+    .terminal-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .terminal-row .prompt {
+      color: var(--accent);
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+    .terminal-row input {
+      flex: 1;
+      margin: 0;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+    }
+    .controls {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      overflow: hidden;
+    }
+    @media (max-width: 640px) {
+      .controls { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .panel h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+    label {
+      display: block;
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 6px 8px;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+    }
+    textarea {
+      min-height: 44px;
+      max-height: 56px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      resize: none;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+    button {
+      background: var(--accent);
+      color: #042f1e;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: var(--accent-hover); color: #fff; }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-weight: 500;
+    }
+    button.secondary:hover { background: #1a2030; }
+    button.danger { background: #7f1d1d; color: #fecaca; font-weight: 500; }
+    button.danger:hover { background: #991b1b; }
+    .hint { font-size: 0.65rem; color: var(--muted); margin: -2px 0 6px; line-height: 1.3; }
+    .hint code { font-size: 0.65rem; }
+    form { margin: 0; }
+    .compact-btns button { padding: 4px 8px; font-size: 0.7rem; }
+    .header-actions { margin-left: auto; }
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: min(520px, 100%);
+      max-height: min(85dvh, 520px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-head h2 {
+      margin: 0;
+      font-size: 0.85rem;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text);
+    }
+    .modal-body {
+      overflow-y: auto;
+      padding: 8px 12px 12px;
+    }
+    .cmd-group { margin-bottom: 10px; }
+    .cmd-group h3 {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 0 0 6px;
+    }
+    .cmd-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: ui-monospace, monospace;
+      font-size: 0.72rem;
+      padding: 7px 9px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      font-weight: 400;
+    }
+    .cmd-item:hover { border-color: var(--accent); background: #0e1218; }
+    .cmd-item small {
+      display: block;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--muted);
+      font-size: 0.62rem;
+      margin-top: 2px;
+    }
+    .modal-foot {
+      padding: 8px 12px;
+      border-top: 1px solid var(--border);
+      font-size: 0.65rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .toast {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--accent);
+      color: #042f1e;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 999px;
+      opacity: 0;
+      transition: transform 0.2s, opacity 0.2s;
+      z-index: 200;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <h1>Control ADB</h1>
+      <p class="subtitle">Connect by IP · key events · shell</p>
+      <div class="header-actions">
+        <button type="button" class="secondary" id="btn-adb-cmds">ADB commands</button>
+      </div>
+    </header>
+
+    <section class="output-panel">
+      <h2>Output</h2>
+      {{if .Message}}
+      <div class="output {{if .Error}}err{{end}}">{{.Message}}</div>
+      {{else}}
+      <div class="output empty">No output yet — save IP, check status, or use remote controls.</div>
+      {{end}}
+    </section>
+
+    <section class="terminal-bar">
+      <h2>Terminal (local)</h2>
+      <form method="post" action="/adb">
+        {{template "hidden_config" .}}
+        <div class="terminal-row">
+          <span class="prompt">$</span>
+          <input type="text" id="terminal-cmd" name="terminal_cmd" value="{{.TerminalCmd}}" placeholder="adb devices" autocomplete="off" spellcheck="false">
+          <button type="button" class="secondary" id="btn-adb-cmds-2" title="Command list">⌘</button>
+          <button type="submit" name="do" value="terminal">Run</button>
+        </div>
+        <p class="hint" style="margin:4px 0 0">Runs on this Mac (e.g. <code>adb connect …</code>). Device shell is below in Remote.</p>
+      </form>
+    </section>
+
+    <div class="controls">
+      <section class="panel">
+        <h2>Device IP</h2>
+        <form method="post" action="/">
+          <input type="hidden" name="action" value="save">
+          <label>IP (default port :5555)</label>
+          <input type="text" name="device_ip" value="{{.Config.ADBHost}}" placeholder="192.168.1.50" inputmode="decimal" autocomplete="off">
+          <p class="hint"><code>192.168.1.50</code> or <code>:5555</code> · wireless debugging on</p>
+          <label>ADB serial (optional)</label>
+          <input type="text" name="adb_serial" value="{{.Config.ADBSerial}}" placeholder="192.168.1.50:5555">
+          <div class="row">
+            <button type="submit">Save</button>
+            <button type="submit" formaction="/status" class="secondary">Status</button>
+          </div>
+        </form>
+        <form method="post" action="/adb">
+          {{template "hidden_config" .}}
+          <div class="row compact-btns">
+            <button type="submit" name="do" value="connect" class="secondary">Connect</button>
+            <button type="submit" name="do" value="disconnect" class="secondary">Disconnect</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Remote</h2>
+        <form method="post" action="/adb">
+          {{template "hidden_config" .}}
+          <div class="row compact-btns">
+            <button type="submit" name="keyevent" value="3">Home</button>
+            <button type="submit" name="keyevent" value="4">Back</button>
+            <button type="submit" name="keyevent" value="26">Pwr</button>
+            <button type="submit" name="keyevent" value="82">Menu</button>
+            <button type="submit" name="keyevent" value="24">Vol+</button>
+            <button type="submit" name="keyevent" value="25">Vol−</button>
+            <button type="submit" name="keyevent" value="66">Enter</button>
+          </div>
+          <div class="row compact-btns">
+            <button type="submit" name="keyevent" value="19" class="secondary">↑</button>
+            <button type="submit" name="keyevent" value="20" class="secondary">↓</button>
+            <button type="submit" name="keyevent" value="21" class="secondary">←</button>
+            <button type="submit" name="keyevent" value="22" class="secondary">→</button>
+            <input type="text" name="keyevent_custom" placeholder="key" style="width:3rem;margin:0;padding:4px 6px">
+            <button type="submit">Send</button>
+          </div>
+          <label>Text</label>
+          <div class="row compact-btns">
+            <input type="text" name="input_text" placeholder="hello" style="flex:1;margin:0;min-width:0">
+            <button type="submit" name="do" value="text">Send</button>
+          </div>
+          <label>Shell (device)</label>
+          <textarea name="shell_cmd" placeholder="pm list packages | head -3">{{.ShellCmd}}</textarea>
+          <div class="row compact-btns">
+            <button type="submit" name="do" value="shell">Shell</button>
+            <button type="submit" name="do" value="reboot" class="danger">Reboot</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="adb-cmds-modal" role="dialog" aria-modal="true" aria-labelledby="adb-cmds-title">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="adb-cmds-title">ADB commands</h2>
+        <button type="button" class="secondary" id="btn-close-modal">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="cmd-group">
+          <h3>Connect</h3>
+          <button type="button" class="cmd-item" data-cmd="adb devices">adb devices<small>List connected devices</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb devices -l">adb devices -l<small>List with details</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb connect {{if .Config.ADBHost}}{{.Config.ADBHost}}{{else}}192.168.1.50:5555{{end}}">adb connect …<small>Network connect (uses saved IP)</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb disconnect {{if .Config.ADBHost}}{{.Config.ADBHost}}{{else}}192.168.1.50:5555{{end}}">adb disconnect …<small>Disconnect network device</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb tcpip 5555">adb tcpip 5555<small>Enable TCP port (USB connected first)</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb kill-server">adb kill-server<small>Restart ADB daemon</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb start-server">adb start-server<small>Start ADB daemon</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb get-state">adb get-state<small>device / offline / unauthorized</small></button>
+        </div>
+        <div class="cmd-group">
+          <h3>Device shell</h3>
+          <button type="button" class="cmd-item" data-cmd="adb shell pm list packages | head -20">adb shell pm list packages<small>List packages (first 20)</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb shell getprop ro.product.model">adb shell getprop ro.product.model<small>Device model</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb shell input keyevent 3">adb shell input keyevent 3<small>Home key</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb shell input text hello">adb shell input text hello<small>Type text (spaces → %s)</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb shell screencap -p /sdcard/screen.png">adb shell screencap …<small>Screenshot to /sdcard/</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb shell dumpsys battery">adb shell dumpsys battery<small>Battery info</small></button>
+        </div>
+        <div class="cmd-group">
+          <h3>Install &amp; files</h3>
+          <button type="button" class="cmd-item" data-cmd="adb install -r app.apk">adb install -r app.apk<small>Install / reinstall APK</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb uninstall com.example.app">adb uninstall &lt;package&gt;<small>Remove app</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb push local.txt /sdcard/">adb push … /sdcard/<small>Copy file to device</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb pull /sdcard/screen.png .">adb pull … .<small>Copy file from device</small></button>
+        </div>
+        <div class="cmd-group">
+          <h3>Logs &amp; reboot</h3>
+          <button type="button" class="cmd-item" data-cmd="adb logcat -d | tail -50">adb logcat -d | tail -50<small>Last log lines</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb logcat -c">adb logcat -c<small>Clear log buffer</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb reboot">adb reboot<small>Reboot device</small></button>
+          <button type="button" class="cmd-item" data-cmd="adb reboot bootloader">adb reboot bootloader<small>Fastboot mode</small></button>
+        </div>
+      </div>
+      <div class="modal-foot">Click a command to fill the terminal — then Run. Uses saved IP where shown.</div>
+    </div>
+  </div>
+  <div class="toast" id="toast">Copied to terminal</div>
+
+  <script>
+    (function () {
+      var modal = document.getElementById('adb-cmds-modal');
+      var terminal = document.getElementById('terminal-cmd');
+      var toast = document.getElementById('toast');
+      var deviceIP = document.querySelector('input[name="device_ip"]');
+
+      function openModal() { modal.classList.add('open'); }
+      function closeModal() { modal.classList.remove('open'); }
+
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(function () { toast.classList.remove('show'); }, 1600);
+      }
+
+      function resolveIP(cmd) {
+        var ip = (deviceIP && deviceIP.value.trim()) || '{{.Config.ADBHost}}';
+        if (!ip) return cmd;
+        if (ip.indexOf(':') === -1) ip += ':5555';
+        return cmd.replace(/192\.168\.1\.50:5555/g, ip);
+      }
+
+      document.getElementById('btn-adb-cmds').onclick = openModal;
+      document.getElementById('btn-adb-cmds-2').onclick = openModal;
+      document.getElementById('btn-close-modal').onclick = closeModal;
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeModal();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeModal();
+      });
+
+      modal.querySelectorAll('.cmd-item').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var cmd = resolveIP(btn.getAttribute('data-cmd') || '');
+          if (terminal) {
+            terminal.value = cmd;
+            terminal.focus();
+          }
+          closeModal();
+          showToast('Filled terminal — press Run');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
+{{end}}
+
+{{define "hidden_config"}}
+  <input type="hidden" name="device_ip" value="{{.Config.ADBHost}}">
+  <input type="hidden" name="adb_serial" value="{{.Config.ADBSerial}}">
+{{end}}
