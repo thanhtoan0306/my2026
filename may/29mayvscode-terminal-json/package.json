@@ -1,0 +1,102 @@
+{
+  "name": "terminal-json-beautify",
+  "displayName": "Terminal JSON Beautify",
+  "description": "Beautify and sort JSON from terminal selection, clipboard, or active editor.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Formatters",
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "terminalJsonBeautify.selection",
+        "title": "Beautify JSON from Selection",
+        "category": "Terminal JSON"
+      },
+      {
+        "command": "terminalJsonBeautify.terminal",
+        "title": "Beautify JSON from Terminal Selection",
+        "category": "Terminal JSON"
+      },
+      {
+        "command": "terminalJsonBeautify.clipboard",
+        "title": "Beautify JSON from Clipboard",
+        "category": "Terminal JSON"
+      },
+      {
+        "command": "terminalJsonBeautify.editor",
+        "title": "Beautify JSON in Editor",
+        "category": "Terminal JSON"
+      }
+    ],
+    "menus": {
+      "terminal/context": [
+        {
+          "command": "terminalJsonBeautify.terminal",
+          "group": "navigation@50"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "terminalJsonBeautify.selection",
+          "when": "editorHasSelection",
+          "group": "1_modification@50"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "terminalJsonBeautify.terminal",
+        "key": "ctrl+shift+j",
+        "mac": "cmd+shift+j",
+        "when": "terminalFocus"
+      },
+      {
+        "command": "terminalJsonBeautify.editor",
+        "key": "ctrl+shift+j",
+        "mac": "cmd+shift+j",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "Terminal JSON Beautify",
+      "properties": {
+        "terminalJsonBeautify.sortKeys": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sort object keys alphabetically when beautifying."
+        },
+        "terminalJsonBeautify.indent": {
+          "type": "number",
+          "default": 2,
+          "minimum": 0,
+          "maximum": 8,
+          "description": "Spaces per indent level."
+        },
+        "terminalJsonBeautify.openInEditor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open beautified JSON in a new editor tab instead of only showing a notification."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "tsc -p ./ --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}

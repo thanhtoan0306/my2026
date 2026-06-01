@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #4ade80;
+      --red: #f87171;
+      --warn: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 2rem 1rem 3rem;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 48rem; margin: 0 auto; }
+    .card h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.05rem;
+      color: var(--accent);
+    }
+    .card.binance, .card.gold { border-color: #854d0e; }
+    .card.binance h2, .card.gold h2 { color: #fbbf24; }
+    h1 { color: var(--accent); margin: 0 0 0.25rem; font-size: 1.5rem; }
+    .meta { color: var(--muted); font-size: 0.875rem; margin-bottom: 1.5rem; }
+    .badge {
+      display: inline-block;
+      background: #172554;
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+    input[type="text"] {
+      flex: 1;
+      min-width: 12rem;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: #0b1220;
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.85rem;
+    }
+    input[type="text"]:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    button {
+      padding: 0.55rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      background: var(--accent);
+      color: #0f172a;
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    button.danger { background: #7f1d1d; color: #fecaca; }
+    button.secondary { background: #334155; color: var(--text); }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .dot {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: var(--red);
+      flex-shrink: 0;
+    }
+    .dot.on { background: var(--green); }
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+    .hint code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--accent);
+    }
+    .ticker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+      gap: 0.65rem;
+      margin-bottom: 0.75rem;
+    }
+    .ticker-item {
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.55rem 0.65rem;
+    }
+    .ticker-item .k {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .ticker-item .v {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.9rem;
+      margin-top: 0.15rem;
+      word-break: break-all;
+    }
+    .ticker-item.hero {
+      grid-column: 1 / -1;
+      border-color: #b45309;
+      background: #1c1917;
+    }
+    .ticker-item.hero .v {
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+    .ticker-item.hero .v.up { color: var(--green); }
+    .ticker-item.hero .v.down { color: var(--red); }
+    #binanceRaw, #binanceLog, #log {
+      margin: 0;
+      padding: 0.75rem 1rem;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: #cbd5e1;
+      max-height: 10rem;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    #log { max-height: 14rem; }
+    #binanceLog { max-height: 6rem; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <span class="badge">SSR · Go · WebSocket</span>
+    <h1>{{.Title}}</h1>
+    <p class="meta">Render server lúc {{.RenderedAt}}</p>
+
+    <div class="card">
+      <label for="wsUrl">WebSocket URL</label>
+      <div class="row">
+        <input id="wsUrl" type="text" value="{{.DefaultWSURL}}" autocomplete="off" spellcheck="false">
+        <button type="button" id="btnConnect">Connect</button>
+        <button type="button" id="btnDisconnect" class="danger" disabled>Disconnect</button>
+      </div>
+
+      <div class="status">
+        <span id="dot" class="dot"></span>
+        <span id="statusText">Chưa kết nối</span>
+      </div>
+
+      <label for="msg">Gửi tin nhắn test</label>
+      <div class="row">
+        <input id="msg" type="text" placeholder="hello" value="ping">
+        <button type="button" id="btnSend" class="secondary" disabled>Send</button>
+      </div>
+
+      <label>Log</label>
+      <pre id="log"></pre>
+
+      <p class="hint">
+        Mặc định kết nối echo server tại <code>/ws</code> trên cùng host.
+        Có thể dán URL bất kỳ (vd. <code>wss://echo.websocket.events</code>).
+      </p>
+    </div>
+
+    <div class="card binance">
+      <h2>Binance · 24hrTicker</h2>
+      <label for="binanceUrl">Stream URL</label>
+      <div class="row">
+        <input id="binanceUrl" type="text" value="{{.BinanceTickerURL}}" autocomplete="off" spellcheck="false">
+        <button type="button" id="btnBinanceConnect">Connect</button>
+        <button type="button" id="btnBinanceDisconnect" class="danger" disabled>Disconnect</button>
+      </div>
+      <div class="status">
+        <span id="binanceDot" class="dot"></span>
+        <span id="binanceStatus">Chưa kết nối</span>
+        <span id="binanceEventTime" style="margin-left:auto;color:var(--muted);font-size:0.8rem"></span>
+      </div>
+
+      <div id="tickerParsed" hidden>
+        <div class="ticker-grid">
+          <div class="ticker-item hero">
+            <div class="k" id="tkSymbol">BTCUSDT</div>
+            <div class="v" id="tkLast">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">Change (p)</div>
+            <div class="v" id="tkChange">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">Change % (P)</div>
+            <div class="v" id="tkChangePct">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">Open (o)</div>
+            <div class="v" id="tkOpen">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">High (h)</div>
+            <div class="v" id="tkHigh">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">Low (l)</div>
+            <div class="v" id="tkLow">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">Volume (v)</div>
+            <div class="v" id="tkVol">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">Quote vol (q)</div>
+            <div class="v" id="tkQuoteVol">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">Bid (b)</div>
+            <div class="v" id="tkBid">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">Ask (a)</div>
+            <div class="v" id="tkAsk">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">Trades (n)</div>
+            <div class="v" id="tkTrades">—</div>
+          </div>
+          <div class="ticker-item">
+            <div class="k">Weighted (w)</div>
+            <div class="v" id="tkWeighted">—</div>
+          </div>
+        </div>
+        <label>Raw JSON (message mới nhất)</label>
+        <pre id="binanceRaw">—</pre>
+      </div>
+      <p id="binancePlaceholder" class="hint">Connect để parse <code>24hrTicker</code> realtime.</p>
+      <label>Log</label>
+      <pre id="binanceLog"></pre>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const wsUrl = document.getElementById('wsUrl');
+      const msg = document.getElementById('msg');
+      const logEl = document.getElementById('log');
+      const dot = document.getElementById('dot');
+      const statusText = document.getElementById('statusText');
+      const btnConnect = document.getElementById('btnConnect');
+      const btnDisconnect = document.getElementById('btnDisconnect');
+      const btnSend = document.getElementById('btnSend');
+
+      let ws = null;
+      const maxLines = 200;
+
+      function log(line) {
+        const t = new Date().toISOString().slice(11, 23);
+        logEl.textContent += '[' + t + '] ' + line + '\n';
+        const lines = logEl.textContent.split('\n');
+        if (lines.length > maxLines) {
+          logEl.textContent = lines.slice(-maxLines).join('\n');
+        }
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function setConnected(on) {
+        dot.classList.toggle('on', on);
+        statusText.textContent = on ? 'Đã kết nối' : 'Chưa kết nối';
+        btnConnect.disabled = on;
+        btnDisconnect.disabled = !on;
+        btnSend.disabled = !on;
+        wsUrl.disabled = on;
+      }
+
+      function disconnect() {
+        if (ws) {
+          ws.onclose = null;
+          ws.close();
+          ws = null;
+        }
+        setConnected(false);
+      }
+
+      btnConnect.addEventListener('click', function () {
+        const url = wsUrl.value.trim();
+        if (!url) {
+          log('URL trống');
+          return;
+        }
+        if (!/^wss?:\/\//i.test(url)) {
+          log('URL phải bắt đầu bằng ws:// hoặc wss://');
+          return;
+        }
+        disconnect();
+        log('Connecting → ' + url);
+        try {
+          ws = new WebSocket(url);
+        } catch (e) {
+          log('Lỗi: ' + e.message);
+          return;
+        }
+
+        ws.onopen = function () {
+          setConnected(true);
+          log('OPEN');
+        };
+        ws.onmessage = function (ev) {
+          log('← ' + ev.data);
+        };
+        ws.onerror = function () {
+          log('ERROR (xem tab Network / mixed content nếu trang là https)');
+        };
+        ws.onclose = function (ev) {
+          log('CLOSE code=' + ev.code + (ev.reason ? ' reason=' + ev.reason : ''));
+          ws = null;
+          setConnected(false);
+        };
+      });
+
+      btnDisconnect.addEventListener('click', function () {
+        log('Disconnecting…');
+        disconnect();
+      });
+
+      btnSend.addEventListener('click', function () {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          log('Chưa OPEN, không gửi được');
+          return;
+        }
+        const text = msg.value;
+        ws.send(text);
+        log('→ ' + text);
+      });
+
+      msg.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !btnSend.disabled) btnSend.click();
+      });
+
+      log('Sẵn sàng. Nhấn Connect để test.');
+    })();
+
+    (function () {
+      const BINANCE_URL = document.getElementById('binanceUrl');
+      const btnConnect = document.getElementById('btnBinanceConnect');
+      const btnDisconnect = document.getElementById('btnBinanceDisconnect');
+      const dot = document.getElementById('binanceDot');
+      const status = document.getElementById('binanceStatus');
+      const eventTime = document.getElementById('binanceEventTime');
+      const parsed = document.getElementById('tickerParsed');
+      const placeholder = document.getElementById('binancePlaceholder');
+      const rawEl = document.getElementById('binanceRaw');
+      const logEl = document.getElementById('binanceLog');
+
+      let ws = null;
+      let msgCount = 0;
+
+      function blog(line) {
+        const t = new Date().toISOString().slice(11, 23);
+        logEl.textContent += '[' + t + '] ' + line + '\n';
+        const lines = logEl.textContent.split('\n');
+        if (lines.length > 80) logEl.textContent = lines.slice(-80).join('\n');
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function fmtNum(s, decimals) {
+        const n = parseFloat(s);
+        if (Number.isNaN(n)) return s || '—';
+        return n.toLocaleString('en-US', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals
+        });
+      }
+
+      function fmtTime(ms) {
+        if (!ms) return '';
+        return new Date(ms).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+      }
+
+      function parseTicker(data) {
+        let t;
+        try {
+          t = JSON.parse(data);
+        } catch (e) {
+          blog('JSON lỗi: ' + e.message);
+          return;
+        }
+        if (t.e !== '24hrTicker') {
+          blog('Bỏ qua event: ' + (t.e || '(unknown)'));
+          return;
+        }
+
+        parsed.hidden = false;
+        placeholder.hidden = true;
+        rawEl.textContent = data;
+
+        document.getElementById('tkSymbol').textContent = t.s || '—';
+        const lastEl = document.getElementById('tkLast');
+        lastEl.textContent = fmtNum(t.c, 2) + ' USDT';
+        const ch = parseFloat(t.p);
+        const chPct = parseFloat(t.P);
+        const up = ch >= 0;
+        lastEl.className = 'v ' + (up ? 'up' : 'down');
+
+        const chEl = document.getElementById('tkChange');
+        chEl.textContent = (up ? '+' : '') + fmtNum(t.p, 2);
+        chEl.style.color = up ? 'var(--green)' : 'var(--red)';
+
+        const pctEl = document.getElementById('tkChangePct');
+        pctEl.textContent = (up ? '+' : '') + fmtNum(t.P, 3) + '%';
+        pctEl.style.color = up ? 'var(--green)' : 'var(--red)';
+
+        document.getElementById('tkOpen').textContent = fmtNum(t.o, 2);
+        document.getElementById('tkHigh').textContent = fmtNum(t.h, 2);
+        document.getElementById('tkLow').textContent = fmtNum(t.l, 2);
+        document.getElementById('tkVol').textContent = fmtNum(t.v, 4) + ' BTC';
+        document.getElementById('tkQuoteVol').textContent = fmtNum(t.q, 2);
+        document.getElementById('tkBid').textContent = fmtNum(t.b, 2) + ' × ' + t.B;
+        document.getElementById('tkAsk').textContent = fmtNum(t.a, 2) + ' × ' + t.A;
+        document.getElementById('tkTrades').textContent = Number(t.n).toLocaleString('en-US');
+        document.getElementById('tkWeighted').textContent = fmtNum(t.w, 2);
+        eventTime.textContent = 'E: ' + fmtTime(t.E);
+
+        msgCount++;
+        if (msgCount <= 3 || msgCount % 50 === 0) {
+          blog('#' + msgCount + ' ' + t.s + ' ' + t.c + ' (' + t.P + '%)');
+        }
+      }
+
+      function setConnected(on) {
+        dot.classList.toggle('on', on);
+        status.textContent = on ? 'Đã kết nối · streaming' : 'Chưa kết nối';
+        btnConnect.disabled = on;
+        btnDisconnect.disabled = !on;
+        BINANCE_URL.disabled = on;
+        if (!on) eventTime.textContent = '';
+      }
+
+      function disconnect() {
+        if (ws) {
+          ws.onclose = null;
+          ws.close();
+          ws = null;
+        }
+        setConnected(false);
+      }
+
+      btnConnect.addEventListener('click', function () {
+        const url = BINANCE_URL.value.trim();
+        if (!url) { blog('URL trống'); return; }
+        disconnect();
+        msgCount = 0;
+        blog('Connecting → ' + url);
+        ws = new WebSocket(url);
+        ws.onopen = function () {
+          setConnected(true);
+          blog('OPEN · chờ 24hrTicker…');
+        };
+        ws.onmessage = function (ev) { parseTicker(ev.data); };
+        ws.onerror = function () { blog('ERROR'); };
+        ws.onclose = function (ev) {
+          blog('CLOSE code=' + ev.code);
+          ws = null;
+          setConnected(false);
+        };
+      });
+
+      btnDisconnect.addEventListener('click', function () {
+        blog('Disconnecting…');
+        disconnect();
+      });
+    })();
+  </script>
+</body>
+</html>
