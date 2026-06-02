@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BTC-USDT · OKX</title>
+  <style>
+    :root {
+      --bg: #0b0e13;
+      --panel: #131820;
+      --border: #252d3a;
+      --text: #f0f2f5;
+      --muted: #8b95a8;
+      --btc: #f7931a;
+      --btc-dim: #c47614;
+      --up: #22c55e;
+      --down: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, #1a1208 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .page {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    header { text-align: center; margin-bottom: 28px; }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--btc) 0%, var(--btc-dim) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #1a0f00;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.8rem; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 22px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+    .price-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+    .price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .price {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.15s;
+    }
+    .price.waiting { color: var(--muted); font-size: 1.4rem; font-weight: 500; }
+    .price.flash-up { color: var(--up); }
+    .price.flash-down { color: var(--down); }
+    .change {
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+    }
+    .change.up { background: rgba(34, 197, 94, 0.15); color: var(--up); }
+    .change.down { background: rgba(239, 68, 68, 0.15); color: var(--down); }
+    .change.neutral { background: rgba(139, 149, 168, 0.15); color: var(--muted); }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .stat label {
+      display: block;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .stat span {
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .footer {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    .dot.live { background: var(--up); box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); }
+    .dot.error { background: var(--down); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">₿</div>
+        <h1>BTC / USDT</h1>
+      </div>
+      <p class="subtitle">Live spot price from OKX WebSocket</p>
+    </header>
+
+    <section class="card">
+      <p class="price-label">Last price</p>
+      <div class="price-row">
+        <span class="price waiting" id="last">Waiting for OKX…</span>
+        <span class="change neutral" id="change" hidden></span>
+      </div>
+      <div class="stats">
+        <div class="stat"><label>Bid</label><span id="bid">—</span></div>
+        <div class="stat"><label>Ask</label><span id="ask">—</span></div>
+        <div class="stat"><label>24h High</label><span id="high">—</span></div>
+        <div class="stat"><label>24h Low</label><span id="low">—</span></div>
+        <div class="stat"><label>24h Volume</label><span id="vol">— BTC</span></div>
+        <div class="stat"><label>Updated</label><span id="updated">—</span></div>
+      </div>
+    </section>
+
+    <p class="footer">
+      <span class="status">
+        <span class="dot" id="dot"></span>
+        <span id="status">Connecting…</span>
+      </span>
+      · single HTML · OKX
+    </p>
+  </div>
+
+  <script>
+    (function () {
+      var WS_URL = "wss://ws.okx.com:8443/ws/v5/public";
+      var INST = "BTC-USDT";
+      var RECONNECT_MS = 3000;
+
+      var lastEl = document.getElementById("last");
+      var changeEl = document.getElementById("change");
+      var bidEl = document.getElementById("bid");
+      var askEl = document.getElementById("ask");
+      var highEl = document.getElementById("high");
+      var lowEl = document.getElementById("low");
+      var volEl = document.getElementById("vol");
+      var updatedEl = document.getElementById("updated");
+      var statusEl = document.getElementById("status");
+      var dotEl = document.getElementById("dot");
+
+      var prevLast = null;
+      var ws = null;
+      var reconnectTimer = null;
+
+      function setStatus(text, state) {
+        statusEl.textContent = text;
+        dotEl.className = "dot" + (state ? " " + state : "");
+      }
+
+      function pctChange(open, last) {
+        var o = parseFloat(open);
+        var l = parseFloat(last);
+        if (!o || isNaN(o) || isNaN(l)) return null;
+        return ((l - o) / o) * 100;
+      }
+
+      function fmtPct(pct) {
+        return (pct >= 0 ? "+" : "") + pct.toFixed(2) + "%";
+      }
+
+      function fmtTime() {
+        return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      }
+
+      function flashPrice(direction) {
+        lastEl.classList.remove("flash-up", "flash-down", "waiting");
+        lastEl.classList.add(direction === "up" ? "flash-up" : "flash-down");
+        setTimeout(function () {
+          lastEl.classList.remove("flash-up", "flash-down");
+        }, 400);
+      }
+
+      function updateTicker(d) {
+        var last = parseFloat(d.last);
+        if (d.last) {
+          lastEl.textContent = "$" + d.last;
+          lastEl.classList.remove("waiting");
+          if (prevLast !== null && last !== prevLast) {
+            flashPrice(last > prevLast ? "up" : "down");
+          }
+          prevLast = last;
+        }
+
+        var pct = pctChange(d.open24h, d.last);
+        if (pct !== null) {
+          changeEl.hidden = false;
+          changeEl.textContent = fmtPct(pct);
+          changeEl.className = "change " + (pct > 0 ? "up" : pct < 0 ? "down" : "neutral");
+        }
+
+        bidEl.textContent = d.bidPx || "—";
+        askEl.textContent = d.askPx || "—";
+        highEl.textContent = d.high24h || "—";
+        lowEl.textContent = d.low24h || "—";
+        volEl.textContent = (d.volCcy24h || "—") + " BTC";
+        updatedEl.textContent = fmtTime();
+        setStatus("Connected to OKX", "live");
+      }
+
+      function connect() {
+        if (ws) {
+          ws.onclose = null;
+          ws.close();
+        }
+
+        setStatus("Connecting…", "");
+        ws = new WebSocket(WS_URL);
+
+        ws.onopen = function () {
+          ws.send(JSON.stringify({
+            op: "subscribe",
+            args: [{ channel: "tickers", instId: INST }]
+          }));
+        };
+
+        ws.onmessage = function (ev) {
+          var msg;
+          try { msg = JSON.parse(ev.data); } catch (e) { return; }
+          if (msg.event === "error") {
+            setStatus(msg.msg || "WebSocket error", "error");
+            return;
+          }
+          if (msg.data && msg.data[0]) {
+            updateTicker(msg.data[0]);
+          }
+        };
+
+        ws.onerror = function () {
+          setStatus("Connection error", "error");
+        };
+
+        ws.onclose = function () {
+          setStatus("Reconnecting…", "error");
+          reconnectTimer = setTimeout(connect, RECONNECT_MS);
+        };
+      }
+
+      connect();
+    })();
+  </script>
+</body>
+</html>

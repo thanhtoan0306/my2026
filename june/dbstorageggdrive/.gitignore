@@ -1,0 +1,7 @@
+credentials.json
+client_secret*.json
+token.json
+folder_id.txt
+telegram_backup_folder_id.txt
+.env
+*.local

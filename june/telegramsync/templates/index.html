@@ -1,0 +1,107 @@
+{{define "index"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Telegram sync</title>
+  <style>
+    :root {
+      --bg: #0a0d11;
+      --panel: #12161e;
+      --border: #232a38;
+      --text: #eef0f4;
+      --muted: #8891a5;
+      --accent: #2aabee;
+      --ok: #34d399;
+      --err: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .page { max-width: 560px; margin: 0 auto; padding: 1.5rem 1rem; }
+    h1 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+    .sub { color: var(--muted); font-size: 0.88rem; margin-bottom: 1.25rem; }
+    .sub a { color: var(--accent); }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .status { font-size: 0.85rem; color: var(--muted); }
+    .status.ok { color: var(--ok); }
+    .status.bad { color: var(--err); }
+    button {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .banner {
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .banner.ok { background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.35); }
+    .banner.err { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.35); }
+    code { font-size: 0.82rem; word-break: break-all; }
+    ol { margin: 0; padding-left: 1.2rem; font-size: 0.88rem; color: var(--muted); }
+    ol li { margin-bottom: 0.35rem; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Telegram chat sync</h1>
+    <p class="sub">
+      Group <a href="{{.ChatURL}}" target="_blank" rel="noopener">{{.ChatID}}</a>
+      · today’s messages → JSON → Drive <strong>TelegramBackup</strong>
+    </p>
+
+    {{if .Message}}
+    <div class="banner {{if .Error}}err{{else}}ok{{end}}">{{.Message}}
+      {{if .DriveURL}}<br><a href="{{.DriveURL}}" target="_blank" rel="noopener">Open on Google Drive</a>{{end}}
+      {{if .LastJSON}}<br>Local: <code>{{.LastJSON}}</code>{{end}}
+    </div>
+    {{end}}
+
+    <div class="panel">
+      <p class="status {{if .HasAPI}}ok{{else}}bad{{end}}">
+        API credentials: {{if .HasAPI}}ready{{else}}missing — set TELEGRAM_API_ID / TELEGRAM_API_HASH{{end}}
+      </p>
+      <p class="status {{if .HasSession}}ok{{else}}bad{{end}}">
+        Session: {{if .HasSession}}ready{{else}}run <code>go run . login</code> once{{end}}
+      </p>
+      <form method="post" action="/">
+        <input type="hidden" name="action" value="sync">
+        <button type="submit" {{if or (not .HasAPI) (not .HasSession)}}disabled{{end}}>Sync chat</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <strong>First-time setup</strong>
+      <ol>
+        <li>Create an app at <a href="https://my.telegram.org/apps" target="_blank" rel="noopener">my.telegram.org/apps</a></li>
+        <li><code>export TELEGRAM_API_ID=… TELEGRAM_API_HASH=…</code></li>
+        <li><code>go run . login</code> (phone + code in terminal)</li>
+        <li>Click <strong>Sync chat</strong> — may take up to a minute</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>
+{{end}}

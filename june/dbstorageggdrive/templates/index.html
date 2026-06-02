@@ -1,0 +1,163 @@
+{{define "index"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drive storage</title>
+  <style>
+    :root {
+      --bg: #0a0d11;
+      --panel: #12161e;
+      --border: #232a38;
+      --text: #eef0f4;
+      --muted: #8891a5;
+      --accent: #3d8bfd;
+      --accent-hover: #2563eb;
+      --ok: #34d399;
+      --err: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .page { max-width: 900px; margin: 0 auto; padding: 1.25rem 1rem 2rem; }
+    h1 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 1.25rem; }
+    .sub a { color: var(--accent); }
+    .banner {
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    .banner.ok { background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.35); color: var(--ok); }
+    .banner.err { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.35); color: var(--err); }
+    .grid { display: grid; gap: 1rem; }
+    @media (min-width: 720px) { .grid { grid-template-columns: 280px 1fr; align-items: start; } }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .panel h2 { font-size: 0.95rem; margin: 0 0 0.75rem; }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.35rem; }
+    input[type=file] { width: 100%; font-size: 0.85rem; }
+    button {
+      margin-top: 0.75rem;
+      width: 100%;
+      padding: 0.55rem 1rem;
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button:hover { background: var(--accent-hover); }
+    .files { list-style: none; margin: 0; padding: 0; }
+    .files li {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 0.75rem;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .files li:last-child { border-bottom: 0; }
+    .thumb {
+      width: 72px; height: 72px;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      object-fit: cover;
+    }
+    .icon {
+      width: 72px; height: 72px;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; color: var(--muted);
+    }
+    .name { font-weight: 600; word-break: break-word; }
+    .name a { color: var(--text); text-decoration: none; }
+    .name a:hover { color: var(--accent); }
+    .meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+    .links { margin-top: 0.35rem; font-size: 0.82rem; }
+    .links a { color: var(--accent); margin-right: 0.65rem; }
+    code.copy {
+      display: block;
+      margin-top: 0.35rem;
+      padding: 0.35rem 0.5rem;
+      background: var(--bg);
+      border-radius: 6px;
+      font-size: 0.72rem;
+      word-break: break-all;
+      color: var(--muted);
+    }
+    .empty { color: var(--muted); font-size: 0.9rem; padding: 0.5rem 0; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Drive public storage</h1>
+    <p class="sub">
+      Folder <a href="{{.FolderURL}}" target="_blank" rel="noopener">{{.FolderName}}</a>
+      · {{len .Files}} file{{if ne (len .Files) 1}}s{{end}}
+    </p>
+
+    {{if .Message}}
+    <div class="banner {{if .Error}}err{{else}}ok{{end}}">{{.Message}}</div>
+    {{end}}
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Upload</h2>
+        <form method="post" action="/" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="upload">
+          <label for="file">Image or file</label>
+          <input id="file" type="file" name="file" required>
+          <button type="submit">Upload to Drive</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Files in folder</h2>
+        {{if .Files}}
+        <ul class="files">
+          {{range .Files}}
+          <li>
+            {{if .IsImage}}
+            <a href="/file/{{.ID}}"><img class="thumb" src="{{.DirectURL}}" alt=""></a>
+            {{else}}
+            <div class="icon">📄</div>
+            {{end}}
+            <div>
+              <div class="name"><a href="/file/{{.ID}}">{{.Name}}</a></div>
+              <div class="meta">{{.MimeType}} · {{.SizeHuman}} · {{.CreatedHuman}}</div>
+              <div class="links">
+                <a href="/file/{{.ID}}">details</a>
+                <a href="{{.ViewURL}}" target="_blank" rel="noopener">open in Drive</a>
+                <a href="{{.DownloadURL}}" target="_blank" rel="noopener">download</a>
+              </div>
+              {{if .PublicURL}}
+              <code class="copy">{{.PublicURL}}</code>
+              {{end}}
+            </div>
+          </li>
+          {{end}}
+        </ul>
+        {{else}}
+        <p class="empty">No files yet. Upload one on the left.</p>
+        {{end}}
+      </section>
+    </div>
+  </div>
+</body>
+</html>
+{{end}}

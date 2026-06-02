@@ -1,0 +1,90 @@
+{{define "file"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Name}} · Drive storage</title>
+  <style>
+    :root {
+      --bg: #0a0d11;
+      --panel: #12161e;
+      --border: #232a38;
+      --text: #eef0f4;
+      --muted: #8891a5;
+      --accent: #3d8bfd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .page { max-width: 720px; margin: 0 auto; padding: 1.25rem 1rem 2rem; }
+    .back { color: var(--accent); font-size: 0.9rem; text-decoration: none; }
+    h1 { font-size: 1.15rem; margin: 0.75rem 0 0.25rem; word-break: break-word; }
+    .meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .preview { max-width: 100%; border-radius: 8px; display: block; margin: 0 auto; }
+    .links a { color: var(--accent); margin-right: 1rem; font-size: 0.9rem; }
+    code {
+      display: block;
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: var(--bg);
+      border-radius: 6px;
+      font-size: 0.78rem;
+      word-break: break-all;
+      color: var(--muted);
+    }
+    pre.readout {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.82rem;
+      max-height: 360px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back" href="/">← All files</a>
+    <h1>{{.Name}}</h1>
+    <p class="meta">{{.MimeType}} · {{.SizeHuman}} · {{.CreatedHuman}}</p>
+
+    <div class="panel links">
+      <a href="{{.ViewURL}}" target="_blank" rel="noopener">Open in Google Drive</a>
+      <a href="{{.DownloadURL}}" target="_blank" rel="noopener">Download</a>
+      {{if .DirectURL}}<a href="{{.DirectURL}}" target="_blank" rel="noopener">Direct link</a>{{end}}
+    </div>
+
+    {{if .IsImage}}
+    <div class="panel">
+      <img class="preview" src="{{.DirectURL}}" alt="{{.Name}}">
+    </div>
+    {{end}}
+
+    {{if .TextContent}}
+    <div class="panel">
+      <strong style="font-size:0.9rem;">Preview (text)</strong>
+      <pre class="readout">{{.TextContent}}</pre>
+    </div>
+    {{end}}
+
+    <div class="panel">
+      <strong style="font-size:0.9rem;">Public URL</strong>
+      {{if .DirectURL}}<code>{{.DirectURL}}</code>{{else}}<code>{{.DownloadURL}}</code>{{end}}
+    </div>
+  </div>
+</body>
+</html>
+{{end}}

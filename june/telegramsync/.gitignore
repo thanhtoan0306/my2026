@@ -1,0 +1,4 @@
+session/
+.env
+*.json
+!go.sum
