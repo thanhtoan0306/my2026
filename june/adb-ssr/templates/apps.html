@@ -1,0 +1,47 @@
+{{define "apps_list"}}
+<div class="apps-toolbar">
+  <span class="apps-count">{{if .Apps}}{{len .Apps}} apps{{else}}0 apps{{end}}</span>
+  <button type="button" class="primary"
+    hx-get="/apps"
+    hx-include="#config-fields"
+    hx-target="#apps-panel"
+    hx-swap="innerHTML"
+    hx-indicator="#apps-loading">Refresh</button>
+  <button type="button" class="warn"
+    hx-post="/adb"
+    hx-vals='{"do":"close_all"}'
+    hx-include="#config-fields"
+    hx-target="#flash-messages"
+    hx-swap="innerHTML"
+    hx-confirm="Force-stop ALL third-party apps on the device?"
+    hx-indicator="#apps-loading">Close all apps</button>
+</div>
+<span id="apps-loading" class="htmx-indicator">Loading…</span>
+{{if .Apps}}
+<ul class="app-list">
+  {{range .Apps}}
+  <li>
+    <code class="pkg">{{.Package}}</code>
+    <button type="button" class="small"
+      hx-post="/adb"
+      hx-vals='{"do":"stop_app","package":"{{.Package}}"}'
+      hx-include="#config-fields"
+      hx-target="#flash-messages"
+      hx-swap="innerHTML">Stop</button>
+  </li>
+  {{end}}
+</ul>
+{{else}}
+<p class="hint apps-empty">No third-party packages. Tap Refresh after connecting a device.</p>
+{{end}}
+{{end}}
+
+{{define "apps"}}
+{{template "apps_list" .}}
+{{end}}
+
+{{define "apps_oob"}}
+<div id="apps-panel" hx-swap-oob="innerHTML">
+  {{template "apps_list" .}}
+</div>
+{{end}}

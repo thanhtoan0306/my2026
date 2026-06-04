@@ -1,0 +1,19 @@
+{
+  "name": "adb-tauri",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "sidecar": "cd sidecar && ADB_SIDECAR_PORT=19527 go run .",
+    "build:sidecar": "bash scripts/build-sidecar.sh",
+    "tauri": "tauri",
+    "tauri:dev": "npm run build:sidecar && tauri dev",
+    "tauri:build": "npm run build:sidecar && tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.2.7",
+    "vite": "^6.2.0"
+  }
+}

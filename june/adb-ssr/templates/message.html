@@ -1,0 +1,13 @@
+{{define "message"}}
+{{if .Message}}
+<div class="msg {{if .Error}}err{{else}}ok{{end}}">{{.Message}}</div>
+{{else}}
+<p class="msg-placeholder">Ready — actions update here without reloading the page.</p>
+{{end}}
+{{end}}
+
+{{define "message_oob"}}
+<div id="flash-messages" hx-swap-oob="innerHTML">
+  {{template "message" .}}
+</div>
+{{end}}

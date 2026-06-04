@@ -1,0 +1,12 @@
+services:
+  pcmonitor:
+    build: .
+    container_name: pcmonitor
+    restart: unless-stopped
+    environment:
+      PORT: "8095"
+      HOST: "0.0.0.0"
+      # MONITOR_TOKEN: "change-me"
+    ports:
+      - "8095:8095"
+

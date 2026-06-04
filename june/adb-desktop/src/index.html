@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>ADB Desktop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">⬡</span>
+      <h1>ADB Desktop</h1>
+    </div>
+    <div class="status" id="status-pill">Ready</div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <section class="panel">
+        <h2>Connection</h2>
+        <label>Network host (IP or IP:port)</label>
+        <input type="text" id="host" placeholder="192.168.1.50 or 192.168.1.50:5555" autocomplete="off">
+        <div class="row">
+          <button type="button" id="btn-connect" class="primary">Connect</button>
+          <button type="button" id="btn-disconnect" class="secondary">Disconnect</button>
+        </div>
+        <label>ADB serial (optional)</label>
+        <input type="text" id="serial" placeholder="From device list below" autocomplete="off">
+        <div class="row">
+          <button type="button" id="btn-save" class="secondary">Save settings</button>
+          <button type="button" id="btn-refresh" class="secondary">Refresh devices</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Devices</h2>
+        <ul id="device-list" class="device-list"></ul>
+      </section>
+    </aside>
+
+    <div class="content">
+      <section class="panel remote">
+        <h2>Remote control</h2>
+        <p class="hint">Sends <code>adb shell input keyevent</code> to the selected device.</p>
+        <div class="dpad">
+          <button type="button" data-key="19" class="key" title="Up">▲</button>
+          <div class="dpad-mid">
+            <button type="button" data-key="21" class="key" title="Left">◀</button>
+            <button type="button" data-key="23" class="key center" title="OK / Center">●</button>
+            <button type="button" data-key="22" class="key" title="Right">▶</button>
+          </div>
+          <button type="button" data-key="20" class="key" title="Down">▼</button>
+        </div>
+        <div class="key-row">
+          <button type="button" data-key="3" class="key wide">Home</button>
+          <button type="button" data-key="4" class="key wide">Back</button>
+          <button type="button" data-key="82" class="key wide">Menu</button>
+        </div>
+        <div class="key-row">
+          <button type="button" data-key="24" class="key">Vol+</button>
+          <button type="button" data-key="25" class="key">Vol−</button>
+          <button type="button" data-key="164" class="key">Mute</button>
+          <button type="button" data-key="26" class="key warn">Power</button>
+        </div>
+        <div class="key-row">
+          <button type="button" data-key="187" class="key">Recent</button>
+          <button type="button" data-key="66" class="key">Enter</button>
+          <button type="button" id="btn-reboot" class="key warn">Reboot</button>
+        </div>
+      </section>
+
+      <section class="panel split">
+        <div>
+          <h2>Type text</h2>
+          <p class="hint">Spaces are sent as <code>%s</code> (ADB convention).</p>
+          <div class="row">
+            <input type="text" id="input-text" placeholder="hello world">
+            <button type="button" id="btn-send-text" class="primary">Send</button>
+          </div>
+        </div>
+        <div>
+          <h2>Tap</h2>
+          <div class="row">
+            <input type="number" id="tap-x" placeholder="X" min="0">
+            <input type="number" id="tap-y" placeholder="Y" min="0">
+            <button type="button" id="btn-tap" class="primary">Tap</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Device shell</h2>
+        <div class="row">
+          <input type="text" id="shell-cmd" placeholder="pm list packages | head -5" spellcheck="false">
+          <button type="button" id="btn-shell" class="primary">Run</button>
+        </div>
+      </section>
+
+      <section class="panel terminal-panel">
+        <h2>Local ADB terminal</h2>
+        <p class="hint">Runs on this computer. Prefix optional — <code>adb devices</code> or <code>devices</code>.</p>
+        <div class="row">
+          <input type="text" id="terminal-cmd" placeholder="adb devices -l" spellcheck="false" autocomplete="off">
+          <button type="button" id="btn-terminal" class="primary">Run</button>
+          <button type="button" id="btn-cmd-help" class="secondary" title="Command picker">⌘</button>
+        </div>
+        <pre id="output" class="output" aria-live="polite"></pre>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="cmd-dialog">
+    <form method="dialog">
+      <header>
+        <h2>ADB commands</h2>
+        <button type="submit" class="close" aria-label="Close">×</button>
+      </header>
+      <div class="cmd-grid" id="cmd-grid"></div>
+    </form>
+  </dialog>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+{{define "index"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>pcmonitor-host · {{.Hostname}}</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <style>
+    :root {
+      --bg: #05070b;
+      --panel: #0b1220;
+      --border: #1b2b4d;
+      --text: #dbeafe;
+      --muted: #93a4c7;
+      --cyan: #22d3ee;
+      --yellow: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, #0c1a33 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .page { max-width: 980px; margin: 0 auto; padding: 16px 14px 36px; }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .topbar h1 { margin: 0; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.02em; color: var(--cyan); }
+    .muted { color: var(--muted); }
+    .panel {
+      background: rgba(11, 18, 32, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.42);
+    }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 900px) { .grid { grid-template-columns: 1.05fr 0.95fr; } }
+    .mono { font-variant-numeric: tabular-nums; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 260px; }
+    .kv { display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; }
+    .k { color: var(--muted); }
+    .v { color: var(--text); }
+    .barline { white-space: pre; }
+    .bars { display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 8px; }
+    @media (min-width: 520px) { .bars { grid-template-columns: 1fr 1fr; } }
+    .cpu { color: var(--cyan); }
+    .mem { color: var(--yellow); }
+    .swap { color: #a78bfa; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 6px 8px; border-bottom: 1px solid rgba(27,43,77,0.55); }
+    th { text-align: left; color: var(--muted); font-weight: 700; font-size: 0.78rem; }
+    td { font-size: 0.82rem; }
+    .right { text-align: right; }
+    .btns a { color: var(--text); text-decoration: none; border: 1px solid rgba(27,43,77,0.8); padding: 4px 8px; border-radius: 10px; }
+    .btns a.active { border-color: var(--cyan); color: var(--cyan); }
+    code { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.07); padding: 1px 6px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <h1>pcmonitor-host · {{.Hostname}}</h1>
+      <div class="muted mono">refresh {{.PollEveryMs}}ms · {{.Now.Format "2006-01-02 15:04:05"}}</div>
+    </div>
+
+    <div class="grid">
+      <div class="panel"
+           id="summary"
+           hx-get="/fragment/summary?token={{.Token}}"
+           hx-trigger="every 2s"
+           hx-swap="outerHTML">
+        {{template "summary_fragment" .}}
+      </div>
+
+      <div class="panel"
+           id="procs"
+           hx-get="/fragment/procs?token={{.Token}}&sort={{.ProcSort}}"
+           hx-trigger="every 2s"
+           hx-swap="outerHTML">
+        {{template "procs_fragment" .}}
+      </div>
+    </div>
+
+    <div class="muted mono" style="margin-top:10px;">
+      Tip: set <code>MONITOR_TOKEN</code> to require a token.
+    </div>
+  </div>
+</body>
+</html>
+{{end}}
+
+{{define "summary_fragment"}}
+<div id="summary"
+     class="panel"
+     hx-get="/fragment/summary?token={{.Token}}"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML">
+  <div class="row mono">
+    <div>
+      <div class="kv">
+        <div class="k">Uptime</div><div class="v">{{duration .Snap.Uptime}}</div>
+        <div class="k">Load</div><div class="v">{{printf "%.2f %.2f %.2f" .Snap.Load1 .Snap.Load5 .Snap.Load15}}</div>
+        <div class="k">CPU</div><div class="v cpu barline">{{pct .Snap.CPUAllPercent}}  {{bar .Snap.CPUAllPercent 24}}</div>
+        <div class="k">Mem</div><div class="v mem barline">{{pct .Snap.MemPct}}  {{bar .Snap.MemPct 24}}  ({{bytes .Snap.MemUsed}} / {{bytes .Snap.MemTotal}})</div>
+        <div class="k">Swap</div><div class="v swap barline">{{pct .Snap.SwapPct}} {{bar .Snap.SwapPct 24}} ({{bytes .Snap.SwapUsed}} / {{bytes .Snap.SwapTotal}})</div>
+      </div>
+    </div>
+    <div>
+      <div class="k muted" style="margin-bottom:6px;">Per-core CPU</div>
+      <div class="bars mono">
+        {{range $i, $p := .Snap.CPUPerCore}}
+        <div class="cpu barline">cpu{{printf "%02d" $i}} {{printf "%5.1f%%" $p}} {{bar $p 18}}</div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}
+
+{{define "procs_fragment"}}
+<div id="procs"
+     class="panel"
+     hx-get="/fragment/procs?token={{.Token}}&sort={{.ProcSort}}"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML">
+  <div class="row" style="align-items: baseline; justify-content: space-between;">
+    <div class="muted mono">Top processes</div>
+    <div class="btns mono">
+      <a href="/?token={{.Token}}&sort=cpu" class="{{if eq .ProcSort "cpu"}}active{{end}}">sort:cpu</a>
+      <a href="/?token={{.Token}}&sort=mem" class="{{if eq .ProcSort "mem"}}active{{end}}">sort:mem</a>
+    </div>
+  </div>
+  <table class="mono">
+    <thead>
+      <tr>
+        <th class="right">PID</th>
+        <th>NAME</th>
+        <th class="right">CPU%</th>
+        <th class="right">MEM%</th>
+        <th class="right">RSS</th>
+        <th>CMD</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Snap.Procs}}
+      <tr>
+        <td class="right">{{.PID}}</td>
+        <td>{{trim .Name 18}}</td>
+        <td class="right">{{printf "%.1f" .CPU}}</td>
+        <td class="right">{{printf "%.1f" .MemPct}}</td>
+        <td class="right">{{bytes .RSS}}</td>
+        <td>{{trim .Cmdline 44}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+

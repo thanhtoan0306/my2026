@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADB Tauri</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ADB Tauri</h1>
+      <p class="sub">Tauri UI + Go sidecar — control Android via <code>adb</code></p>
+    </header>
+    <div id="flash" class="flash muted">Starting Go sidecar…</div>
+    <div class="grid">
+      <aside>
+        <section class="panel" id="config-panel">
+          <h2>Connection</h2>
+          <label>Network host</label>
+          <input id="host" type="text" placeholder="192.168.1.50:5555" />
+          <label>ADB serial</label>
+          <input id="serial" type="text" placeholder="optional" />
+          <div class="row">
+            <button id="btn-save" class="primary">Save</button>
+            <button id="btn-devices">Refresh devices</button>
+          </div>
+          <div class="row">
+            <button id="btn-connect">Connect</button>
+            <button id="btn-disconnect">Disconnect</button>
+          </div>
+        </section>
+        <section class="panel">
+          <h2>Devices</h2>
+          <pre id="devices" class="mono box"></pre>
+        </section>
+      </aside>
+      <main>
+        <section class="panel">
+          <h2>Apps</h2>
+          <p class="hint">Third-party packages · <button id="btn-close-all" class="warn">Close all apps</button></p>
+          <ul id="apps" class="app-list"></ul>
+        </section>
+        <section class="panel">
+          <h2>Remote</h2>
+          <div class="key-row" id="remote-keys"></div>
+        </section>
+        <section class="panel">
+          <h2>Input</h2>
+          <div class="row">
+            <input id="text-input" type="text" placeholder="hello world" />
+            <button id="btn-text" class="primary">Send text</button>
+          </div>
+          <div class="row">
+            <input id="tap-x" type="number" placeholder="X" min="0" />
+            <input id="tap-y" type="number" placeholder="Y" min="0" />
+            <button id="btn-tap" class="primary">Tap</button>
+          </div>
+        </section>
+        <section class="panel">
+          <h2>Shell</h2>
+          <div class="row">
+            <input id="shell-cmd" type="text" placeholder="pm list packages | head -5" />
+            <button id="btn-shell" class="primary">Run</button>
+          </div>
+        </section>
+        <section class="panel">
+          <h2>Local terminal</h2>
+          <div class="row">
+            <input id="term-cmd" type="text" placeholder="devices -l" />
+            <button id="btn-term" class="primary">Run</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

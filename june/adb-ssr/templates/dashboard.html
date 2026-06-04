@@ -1,0 +1,301 @@
+{{define "dashboard"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ADB SSR</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #181c27;
+      --border: #2a3348;
+      --text: #e8ecf4;
+      --muted: #8b95ad;
+      --accent: #3d8bfd;
+      --err: #f07178;
+      --ok: #3ecf8e;
+      --warn: #e6b450;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    header { margin-bottom: 16px; }
+    h1 { margin: 0; font-size: 1.35rem; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin: 4px 0 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    label { display: block; font-size: 0.75rem; color: var(--muted); margin: 8px 0 4px; }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+    }
+    button, .btn {
+      font: inherit;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #1f2535;
+      color: var(--text);
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); border-color: #2a5fad; color: #fff; }
+    button.warn { border-color: #6b4a20; color: var(--warn); }
+    button.small { padding: 4px 8px; font-size: 11px; }
+    button:hover { border-color: var(--accent); }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+    .row input { flex: 1; min-width: 120px; }
+    #flash-messages { min-height: 2.5rem; margin-bottom: 14px; }
+    .msg {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #1a2335;
+      border: 1px solid var(--border);
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+    }
+    .msg.err { border-color: #6b3a3d; color: var(--err); }
+    .msg.ok { border-color: #2d6b4f; color: var(--ok); }
+    .msg-placeholder { color: var(--muted); font-size: 0.8rem; margin: 0; }
+    .devices {
+      font-family: ui-monospace, monospace;
+      font-size: 11px;
+      white-space: pre-wrap;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      max-height: 140px;
+      overflow: auto;
+      margin: 0;
+    }
+    .dpad { display: grid; justify-items: center; gap: 4px; max-width: 180px; margin: 0 auto 10px; }
+    .dpad-mid { display: flex; gap: 4px; }
+    .key { min-width: 48px; height: 42px; font-size: 15px; }
+    .key-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+    .hint { color: var(--muted); font-size: 0.75rem; margin: 0 0 8px; }
+    .apps-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+    .apps-count { color: var(--muted); font-size: 0.75rem; flex: 1; }
+    .app-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 280px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+    }
+    .app-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .app-list li:last-child { border-bottom: none; }
+    .app-list .pkg {
+      flex: 1;
+      font-family: ui-monospace, monospace;
+      font-size: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .htmx-indicator { display: none; color: var(--muted); font-size: 0.75rem; }
+    .htmx-request .htmx-indicator,
+    .htmx-request.htmx-indicator { display: inline; }
+    .htmx-request.htmx-indicator-btn { opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ADB SSR</h1>
+      <p class="sub">HTMX UI — control Android via <code>adb</code> without full page reloads.</p>
+    </header>
+
+    <div id="flash-messages">
+      {{template "message" .}}
+    </div>
+
+    <div class="grid">
+      <aside>
+        <div class="panel" id="config-fields">
+          <h2>Connection</h2>
+          <label>Network host (IP or IP:port)</label>
+          <input type="text" name="device_ip" value="{{.Config.ADBHost}}" placeholder="192.168.1.50" autocomplete="off">
+          <label>ADB serial (optional)</label>
+          <input type="text" name="adb_serial" value="{{.Config.ADBSerial}}" placeholder="From list below">
+          <div class="row">
+            <button type="button" class="primary"
+              hx-post="/"
+              hx-vals='{"action":"save"}'
+              hx-include="#config-fields"
+              hx-target="#flash-messages"
+              hx-swap="innerHTML">Save</button>
+            <button type="button"
+              hx-post="/"
+              hx-vals='{"action":"refresh"}'
+              hx-include="#config-fields"
+              hx-target="#devices-panel"
+              hx-swap="innerHTML">Refresh devices</button>
+          </div>
+          <div class="row">
+            <button type="button"
+              hx-post="/adb"
+              hx-vals='{"do":"connect"}'
+              hx-include="#config-fields"
+              hx-target="#flash-messages"
+              hx-swap="innerHTML">Connect</button>
+            <button type="button"
+              hx-post="/adb"
+              hx-vals='{"do":"disconnect"}'
+              hx-include="#config-fields"
+              hx-target="#flash-messages"
+              hx-swap="innerHTML">Disconnect</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Devices</h2>
+          <div id="devices-panel">
+            {{template "devices" .}}
+          </div>
+        </div>
+      </aside>
+
+      <div>
+        <div class="panel">
+          <h2>Apps</h2>
+          <p class="hint">Third-party packages (<code>pm list packages -3</code>). <strong>Close all</strong> runs <code>am force-stop</code> on each.</p>
+          <div id="apps-panel"
+            hx-get="/apps"
+            hx-trigger="load"
+            hx-include="#config-fields"
+            hx-swap="innerHTML">
+            {{template "apps_list" .}}
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Remote control</h2>
+          <p class="hint"><code>adb shell input keyevent</code></p>
+          <div class="dpad">
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"19"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">▲</button>
+            <div class="dpad-mid">
+              <button class="key" hx-post="/adb" hx-vals='{"keyevent":"21"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">◀</button>
+              <button class="key" hx-post="/adb" hx-vals='{"keyevent":"23"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">●</button>
+              <button class="key" hx-post="/adb" hx-vals='{"keyevent":"22"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">▶</button>
+            </div>
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"20"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">▼</button>
+          </div>
+          <div class="key-row">
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"3"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">Home</button>
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"4"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">Back</button>
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"82"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">Menu</button>
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"24"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">Vol+</button>
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"25"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">Vol−</button>
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"164"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">Mute</button>
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"26"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">Power</button>
+          </div>
+          <div class="key-row">
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"187"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">Recent</button>
+            <button class="key" hx-post="/adb" hx-vals='{"keyevent":"66"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML">Enter</button>
+            <button class="key" hx-post="/adb" hx-vals='{"do":"reboot"}' hx-include="#config-fields" hx-target="#flash-messages" hx-swap="innerHTML" hx-confirm="Reboot device?">Reboot</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Input</h2>
+          <label>Type text (spaces → %s)</label>
+          <div class="row">
+            <input type="text" id="input-text" name="input_text" value="{{.InputText}}" placeholder="hello world">
+            <button type="button" class="primary"
+              hx-post="/adb"
+              hx-vals='{"do":"text"}'
+              hx-include="#config-fields, #input-text"
+              hx-target="#flash-messages"
+              hx-swap="innerHTML">Send</button>
+          </div>
+          <label>Tap coordinates</label>
+          <div class="row">
+            <input type="number" id="tap-x" name="tap_x" value="{{.TapX}}" placeholder="X" min="0">
+            <input type="number" id="tap-y" name="tap_y" value="{{.TapY}}" placeholder="Y" min="0">
+            <button type="button" class="primary"
+              hx-post="/adb"
+              hx-vals='{"do":"tap"}'
+              hx-include="#config-fields, #tap-x, #tap-y"
+              hx-target="#flash-messages"
+              hx-swap="innerHTML">Tap</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Device shell</h2>
+          <div class="row">
+            <input type="text" id="shell-cmd" name="shell_cmd" value="{{.ShellCmd}}" placeholder="pm list packages | head -5" spellcheck="false">
+            <button type="button" class="primary"
+              hx-post="/adb"
+              hx-vals='{"do":"shell"}'
+              hx-include="#config-fields, #shell-cmd"
+              hx-target="#flash-messages"
+              hx-swap="innerHTML">Run</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Local ADB terminal</h2>
+          <p class="hint">Runs on this machine — e.g. <code>adb devices -l</code></p>
+          <div class="row">
+            <input type="text" id="terminal-cmd" name="terminal_cmd" value="{{.TerminalCmd}}" placeholder="adb devices -l" spellcheck="false">
+            <button type="button" class="primary"
+              hx-post="/adb"
+              hx-vals='{"do":"terminal"}'
+              hx-include="#config-fields, #terminal-cmd"
+              hx-target="#flash-messages"
+              hx-swap="innerHTML">Run</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+{{end}}
