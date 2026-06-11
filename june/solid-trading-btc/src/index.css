@@ -1,0 +1,51 @@
+:root {
+  color: #e8edf5;
+  background: #0b0f14;
+  font-family: 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --bg: #0b0f14;
+  --panel: #121821;
+  --panel-border: #1e2733;
+  --text: #e8edf5;
+  --muted: #8b98a9;
+  --up: #00c087;
+  --down: #ff5b5b;
+  --accent: #f7931a;
+  --long: #00c087;
+  --short: #ff5b5b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(circle at top right, rgba(247, 147, 26, 0.08), transparent 35%),
+    var(--bg);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.text-up {
+  color: var(--up);
+}
+
+.text-down {
+  color: var(--down);
+}
