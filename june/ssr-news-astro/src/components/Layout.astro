@@ -1,0 +1,132 @@
+---
+import '../styles/global.css';
+import { getSiteUrl } from '../lib/site';
+
+interface Props {
+	title: string;
+	description?: string;
+	canonicalPath?: string;
+	ogType?: 'website' | 'article';
+	publishedAt?: string;
+	author?: string;
+}
+
+const {
+	title,
+	description = 'Crypto news rendered on the server — fresh every request.',
+	canonicalPath = Astro.url.pathname,
+	ogType = 'website',
+	publishedAt,
+	author,
+} = Astro.props;
+
+const siteUrl = getSiteUrl(Astro.url);
+const canonicalUrl = new URL(canonicalPath, siteUrl).href;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<link rel="alternate" type="application/rss+xml" title="Crypto Today RSS" href="/rss.xml" />
+		<link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<link rel="canonical" href={canonicalUrl} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:type" content={ogType} />
+		<meta property="og:url" content={canonicalUrl} />
+		{publishedAt && <meta property="article:published_time" content={publishedAt} />}
+		{author && <meta property="article:author" content={author} />}
+		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<title>{title}</title>
+	</head>
+	<body>
+		<header class="site-header">
+			<div class="inner">
+				<a class="brand" href="/">
+					<span class="mark">₿</span>
+					<span>Crypto Today</span>
+				</a>
+				<nav class="nav">
+					<a href="/rss.xml">RSS</a>
+				</nav>
+			</div>
+		</header>
+		<main>
+			<slot />
+		</main>
+		<footer class="site-footer">
+			<div class="inner muted">
+				<p>Rendered server-side with Astro · <a href="/rss.xml">RSS feed</a></p>
+			</div>
+		</footer>
+	</body>
+</html>
+
+<style>
+	.site-header {
+		border-bottom: 1px solid var(--border);
+		background: var(--surface);
+	}
+
+	.inner {
+		width: min(100% - 2rem, var(--max-width));
+		margin: 0 auto;
+		padding: 1.25rem 0;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+
+	.brand {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.6rem;
+		color: var(--text);
+		font-size: 1.25rem;
+		font-weight: 700;
+		text-decoration: none;
+	}
+
+	.brand:hover {
+		text-decoration: none;
+		color: var(--accent);
+	}
+
+	.mark {
+		display: grid;
+		place-items: center;
+		width: 2rem;
+		height: 2rem;
+		border-radius: 8px;
+		background: var(--accent-soft);
+		color: var(--accent);
+	}
+
+	.nav {
+		font-size: 0.875rem;
+	}
+
+	.site-footer {
+		border-top: 1px solid var(--border);
+		margin-top: 2rem;
+	}
+
+	.site-footer .inner {
+		display: block;
+	}
+
+	.site-footer p {
+		margin: 0;
+		font-size: 0.875rem;
+	}
+</style>

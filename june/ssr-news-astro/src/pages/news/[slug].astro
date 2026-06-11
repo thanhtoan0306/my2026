@@ -1,0 +1,116 @@
+---
+import ArticleJsonLd from '../../components/ArticleJsonLd.astro';
+import Layout from '../../components/Layout.astro';
+import { getSiteUrl } from '../../lib/site';
+import { CACHE_ARTICLE, applyCacheHeader } from '../../lib/cache';
+import { formatPublishedAt, getArticleBySlug } from '../../lib/news';
+
+export const prerender = false;
+
+applyCacheHeader(Astro.response.headers, CACHE_ARTICLE);
+
+const { slug } = Astro.params;
+
+if (!slug) {
+	return Astro.redirect('/');
+}
+
+const article = await getArticleBySlug(slug);
+
+if (!article) {
+	return Astro.rewrite('/404');
+}
+
+const siteUrl = getSiteUrl(Astro.url);
+---
+
+<Layout
+	title={`${article.title} · Crypto Today`}
+	description={article.summary}
+	canonicalPath={`/news/${article.slug}`}
+	ogType="article"
+	publishedAt={article.publishedAt}
+	author={article.author}
+>
+	<ArticleJsonLd article={article} siteUrl={siteUrl} />
+	<article class="article">
+		<p class="back"><a href="/">← All stories</a></p>
+
+		<header>
+			<div class="meta">
+				<span class="badge">{article.category}</span>
+				<time class="muted" datetime={article.publishedAt}>{formatPublishedAt(article.publishedAt)}</time>
+			</div>
+			<h1>{article.title}</h1>
+			<p class="byline muted">By {article.author}</p>
+		</header>
+
+		<p class="summary">{article.summary}</p>
+
+		<div class="body">
+			{article.body.split('\n\n').map((paragraph) => <p>{paragraph}</p>)}
+		</div>
+
+		<ul class="tags">
+			{article.tags.map((tag) => <li>#{tag}</li>)}
+		</ul>
+	</article>
+</Layout>
+
+<style>
+	.back {
+		margin: 0 0 1.5rem;
+		font-size: 0.9rem;
+	}
+
+	.meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+
+	h1 {
+		margin: 0 0 0.5rem;
+		font-size: clamp(1.75rem, 4vw, 2.5rem);
+		line-height: 1.15;
+	}
+
+	.byline {
+		margin: 0 0 1.5rem;
+		font-size: 0.9rem;
+	}
+
+	.summary {
+		margin: 0 0 1.5rem;
+		padding: 1rem 1.25rem;
+		border-left: 3px solid var(--accent);
+		background: var(--surface);
+		border-radius: 0 var(--radius) var(--radius) 0;
+		font-size: 1.1rem;
+		color: var(--muted);
+	}
+
+	.body p {
+		margin: 0 0 1rem;
+		font-size: 1.05rem;
+	}
+
+	.tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin: 2rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.tags li {
+		padding: 0.25rem 0.6rem;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+</style>

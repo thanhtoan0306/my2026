@@ -1,0 +1,29 @@
+name: ssr-news-astro
+
+on:
+  push:
+    paths:
+      - 'june/ssr-news-astro/**'
+      - '.github/workflows/ssr-news-astro.yml'
+  pull_request:
+    paths:
+      - 'june/ssr-news-astro/**'
+      - '.github/workflows/ssr-news-astro.yml'
+
+defaults:
+  run:
+    working-directory: june/ssr-news-astro
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: june/ssr-news-astro/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build

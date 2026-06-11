@@ -1,0 +1,27 @@
+---
+import Layout from '../components/Layout.astro';
+
+export const prerender = false;
+
+Astro.response.status = 404;
+---
+
+<Layout title="Not Found · Crypto Today" description="The page you requested could not be found.">
+	<section class="not-found">
+		<p class="badge">404</p>
+		<h1>Story not found</h1>
+		<p class="muted">That article may have moved or does not exist.</p>
+		<p><a href="/">← Back to today's feed</a></p>
+	</section>
+</Layout>
+
+<style>
+	.not-found h1 {
+		margin: 0.75rem 0 0.5rem;
+		font-size: 2rem;
+	}
+
+	.not-found p {
+		margin: 0 0 1rem;
+	}
+</style>

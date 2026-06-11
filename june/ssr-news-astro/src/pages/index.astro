@@ -1,0 +1,58 @@
+---
+import Layout from '../components/Layout.astro';
+import NewsCard from '../components/NewsCard.astro';
+import { CACHE_HOME, applyCacheHeader } from '../lib/cache';
+import { getFeedArticles } from '../lib/news';
+import { formatFullDate, todayIsoDate } from '../lib/site';
+
+export const prerender = false;
+
+applyCacheHeader(Astro.response.headers, CACHE_HOME);
+
+const displayDate = todayIsoDate();
+const { articles, mode } = await getFeedArticles(displayDate);
+const today = formatFullDate(displayDate);
+const headline = mode === 'today' ? 'Crypto News Today' : 'Latest Crypto News';
+const lede =
+	mode === 'today'
+		? `${today} · ${articles.length} stories`
+		: `No stories for ${today} · showing ${articles.length} recent`;
+---
+
+<Layout title="Crypto Today — Top Stories" description="Crypto headlines server-rendered with Astro.">
+	<section class="hero">
+		<p class="badge">{mode === 'today' ? 'Live SSR' : 'Latest feed'}</p>
+		<h1>{headline}</h1>
+		<p class="lede muted">{lede}</p>
+	</section>
+
+	<section class="feed" aria-label="Crypto news feed">
+		{articles.length > 0 ? (
+			articles.map((article) => <NewsCard article={article} />)
+		) : (
+			<p class="empty muted">No stories published yet.</p>
+		)}
+	</section>
+</Layout>
+
+<style>
+	.hero {
+		margin-bottom: 2rem;
+	}
+
+	.hero h1 {
+		margin: 0.75rem 0 0.35rem;
+		font-size: clamp(2rem, 5vw, 2.75rem);
+		line-height: 1.1;
+	}
+
+	.lede {
+		margin: 0;
+		font-size: 1rem;
+	}
+
+	.feed {
+		display: grid;
+		gap: 1.25rem;
+	}
+</style>

@@ -1,0 +1,34 @@
+---
+import type { Article } from '../types/news';
+
+interface Props {
+	article: Article;
+	siteUrl: string;
+}
+
+const { article, siteUrl } = Astro.props;
+
+const jsonLd = {
+	'@context': 'https://schema.org',
+	'@type': 'NewsArticle',
+	headline: article.title,
+	description: article.summary,
+	datePublished: article.publishedAt,
+	author: {
+		'@type': 'Person',
+		name: article.author,
+	},
+	mainEntityOfPage: {
+		'@type': 'WebPage',
+		'@id': `${siteUrl}/news/${article.slug}`,
+	},
+	publisher: {
+		'@type': 'Organization',
+		name: 'Crypto Today',
+	},
+	articleSection: article.category,
+	keywords: article.tags.join(', '),
+};
+---
+
+<script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
