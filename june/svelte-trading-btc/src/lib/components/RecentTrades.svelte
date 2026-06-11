@@ -1,0 +1,32 @@
+<script lang="ts">
+  import { formatPrice, formatQty, formatTime } from '../utils/format'
+  import type { AggTrade } from '../types/trading'
+
+  interface Props {
+    trades: AggTrade[]
+  }
+
+  let { trades }: Props = $props()
+</script>
+
+<section class="panel">
+  <div class="panel__head">
+    <h2>Recent Trades</h2>
+    <span class="panel__hint">aggTrade stream</span>
+  </div>
+
+  <div class="trades-table">
+    <div class="trades-table__header">
+      <span>Price</span>
+      <span>Qty</span>
+      <span>Time</span>
+    </div>
+    {#each trades as trade (trade.id)}
+      <div class="trades-table__row {trade.isBuyerMaker ? 'trades-table__row--sell' : 'trades-table__row--buy'}">
+        <span>{formatPrice(trade.price)}</span>
+        <span>{formatQty(trade.quantity)}</span>
+        <span>{formatTime(trade.time)}</span>
+      </div>
+    {/each}
+  </div>
+</section>
