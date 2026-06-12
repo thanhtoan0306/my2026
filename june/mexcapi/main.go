@@ -47,6 +47,8 @@ func main() {
 	mux.HandleFunc("GET /htmx/dashboard", srv.handleDashboardPartial)
 	mux.HandleFunc("GET /", srv.handleIndex)
 
+	NewPositionPoller(srv.futures, tg).Start()
+
 	addr := "127.0.0.1:" + port
 	log.Printf("mexcssr: http://%s (Go SSR + HTMX)", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
