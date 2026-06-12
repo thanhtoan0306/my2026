@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wolf Sprite Player</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4f;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #6ee7b7;
+      --accent-dim: #34d399;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      gap: 1.5rem;
+    }
+
+    header { text-align: center; }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      margin-top: 0.35rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      justify-content: center;
+      align-items: flex-start;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .stage-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .stage {
+      position: relative;
+      width: 400px;
+      height: 400px;
+      background:
+        linear-gradient(45deg, #1e2a3a 25%, transparent 25%),
+        linear-gradient(-45deg, #1e2a3a 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1e2a3a 75%),
+        linear-gradient(-45deg, transparent 75%, #1e2a3a 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      background-color: #162030;
+      border-radius: 8px;
+      overflow: hidden;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    #sprite {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .frame-info {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .controls {
+      flex: 1;
+      min-width: 260px;
+      max-width: 360px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .controls h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .anim-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    button.anim-btn {
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #243044;
+      color: var(--text);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    button.anim-btn:hover {
+      border-color: var(--accent-dim);
+      background: #2a3d55;
+    }
+
+    button.anim-btn.active {
+      border-color: var(--accent);
+      background: #1e3a32;
+      color: var(--accent);
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .row label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      min-width: 4.5rem;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+    }
+
+    .row output {
+      font-size: 0.8rem;
+      font-variant-numeric: tabular-nums;
+      min-width: 2.5rem;
+      text-align: right;
+      color: var(--muted);
+    }
+
+    .playback {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .playback button {
+      flex: 1;
+      padding: 0.55rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #243044;
+      color: var(--text);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .playback button:hover { background: #2a3d55; }
+
+    .sheet-preview {
+      max-width: 900px;
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .sheet-preview h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .sheet-wrap {
+      overflow: auto;
+      border-radius: 8px;
+      line-height: 0;
+    }
+
+    .sheet-wrap img {
+      width: 500px;
+      max-width: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      opacity: 0.85;
+    }
+
+    .highlight-cell {
+      position: absolute;
+      border: 2px solid var(--accent);
+      pointer-events: none;
+      box-shadow: 0 0 12px rgba(110, 231, 183, 0.4);
+      transition: transform 0.05s linear;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Wolf Sprite Player</h1>
+    <p class="subtitle">Sprite sheet 500×500 · lưới 5×5 · mỗi frame 100×100 px</p>
+  </header>
+
+  <main>
+    <section class="stage-wrap">
+      <div class="stage">
+        <canvas id="sprite" width="400" height="400"></canvas>
+      </div>
+      <p class="frame-info" id="frameInfo">—</p>
+    </section>
+
+    <section class="controls">
+      <h2>Hoạt ảnh</h2>
+      <div class="anim-grid" id="animButtons"></div>
+
+      <h2>Tốc độ</h2>
+      <div class="row">
+        <label for="fps">FPS</label>
+        <input type="range" id="fps" min="1" max="24" value="8" />
+        <output id="fpsVal">8</output>
+      </div>
+
+      <h2>Phát</h2>
+      <div class="playback">
+        <button type="button" id="btnPlay">▶ Phát</button>
+        <button type="button" id="btnPause">⏸ Dừng</button>
+        <button type="button" id="btnStep">⏭ Frame</button>
+      </div>
+
+      <div class="row">
+        <label>
+          <input type="checkbox" id="loop" checked /> Lặp
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <section class="sheet-preview">
+    <h2>Toàn bộ sprite sheet</h2>
+    <div class="sheet-wrap">
+      <img
+        src="assets/woft-5c5r-500x500.png"
+        alt="Wolf sprite sheet 5x5 500px"
+        width="500"
+        height="500"
+      />
+    </div>
+  </section>
+
+  <script>
+    const SHEET_W = 500;
+    const SHEET_H = 500;
+    const COLS = 5;
+    const ROWS = 5;
+    const FRAME_W = SHEET_W / COLS;
+    const FRAME_H = SHEET_H / ROWS;
+
+    const ANIMATIONS = [
+      { id: "idle",   label: "Idle",   row: 0, frames: 5, fps: 6,  loop: true },
+      { id: "walk",   label: "Walk",   row: 1, frames: 5, fps: 10, loop: true },
+      { id: "run",    label: "Run",    row: 2, frames: 5, fps: 14, loop: true },
+      { id: "attack", label: "Attack", row: 3, frames: 5, fps: 12, loop: true },
+      { id: "howl",   label: "Howl",   row: 4, col: 0, frames: 1, fps: 1, loop: false },
+      { id: "crouch", label: "Crouch", row: 4, col: 1, frames: 1, fps: 1, loop: false },
+      { id: "death",  label: "Death",  row: 4, col: 2, frames: 3, fps: 6, loop: false },
+      { id: "misc",   label: "Misc ×5", row: 4, frames: 5, fps: 4, loop: true },
+    ];
+
+    const canvas = document.getElementById("sprite");
+    const ctx = canvas.getContext("2d");
+    const frameInfo = document.getElementById("frameInfo");
+    const fpsInput = document.getElementById("fps");
+    const fpsVal = document.getElementById("fpsVal");
+    const loopCheck = document.getElementById("loop");
+    const animButtons = document.getElementById("animButtons");
+
+    const img = new Image();
+    img.src = "assets/woft-5c5r-500x500.png";
+
+    let currentAnim = ANIMATIONS[0];
+    let frameIndex = 0;
+    let playing = true;
+    let lastTime = 0;
+    let accum = 0;
+    let customFps = null;
+
+    ctx.imageSmoothingEnabled = false;
+
+    function getFps() {
+      return customFps ?? currentAnim.fps;
+    }
+
+    function frameCol(anim, index) {
+      if (anim.col != null) return anim.col + index;
+      return index;
+    }
+
+    function drawFrame(anim, index) {
+      const col = frameCol(anim, index);
+      const sx = col * FRAME_W;
+      const sy = anim.row * FRAME_H;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(
+        img,
+        sx, sy, FRAME_W, FRAME_H,
+        0, 0, canvas.width, canvas.height
+      );
+      frameInfo.textContent =
+        `${anim.label} · hàng ${anim.row + 1} · cột ${col + 1} · frame ${index + 1}/${anim.frames}`;
+    }
+
+    function setAnimation(anim) {
+      currentAnim = anim;
+      frameIndex = 0;
+      customFps = null;
+      fpsInput.value = anim.fps;
+      fpsVal.textContent = anim.fps;
+      loopCheck.checked = anim.loop;
+      document.querySelectorAll(".anim-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.id === anim.id);
+      });
+      drawFrame(anim, 0);
+    }
+
+    function advanceFrame() {
+      const anim = currentAnim;
+      const shouldLoop = loopCheck.checked && anim.loop !== false;
+      if (frameIndex + 1 < anim.frames) {
+        frameIndex++;
+      } else if (shouldLoop) {
+        frameIndex = 0;
+      } else {
+        playing = false;
+        return;
+      }
+      drawFrame(anim, frameIndex);
+    }
+
+    function tick(now) {
+      requestAnimationFrame(tick);
+      if (!playing || !img.complete) return;
+      const dt = lastTime ? now - lastTime : 0;
+      lastTime = now;
+      accum += dt;
+      const interval = 1000 / getFps();
+      while (accum >= interval) {
+        accum -= interval;
+        advanceFrame();
+      }
+    }
+
+    ANIMATIONS.forEach((anim) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "anim-btn";
+      btn.dataset.id = anim.id;
+      btn.textContent = anim.label;
+      btn.addEventListener("click", () => {
+        setAnimation(anim);
+        playing = true;
+        lastTime = 0;
+        accum = 0;
+      });
+      animButtons.appendChild(btn);
+    });
+
+    fpsInput.addEventListener("input", () => {
+      customFps = Number(fpsInput.value);
+      fpsVal.textContent = fpsInput.value;
+    });
+
+    document.getElementById("btnPlay").addEventListener("click", () => {
+      playing = true;
+      lastTime = 0;
+      accum = 0;
+    });
+
+    document.getElementById("btnPause").addEventListener("click", () => {
+      playing = false;
+    });
+
+    document.getElementById("btnStep").addEventListener("click", () => {
+      playing = false;
+      advanceFrame();
+    });
+
+    img.onload = () => {
+      setAnimation(ANIMATIONS[0]);
+      requestAnimationFrame(tick);
+    };
+  </script>
+</body>
+</html>
