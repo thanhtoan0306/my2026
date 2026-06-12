@@ -1,0 +1,333 @@
+:root {
+	--bg: #0b0f14;
+	--panel: #141b24;
+	--panel2: #1a2330;
+	--border: #2a3544;
+	--text: #e8edf4;
+	--muted: #8b9cb3;
+	--accent: #3b82f6;
+	--accent-dim: #2563eb;
+	--green: #34d399;
+	--red: #f87171;
+	--max-width: 1200px;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+	background: var(--bg);
+	color: var(--text);
+	line-height: 1.5;
+}
+
+body {
+	margin: 0;
+	min-height: 100vh;
+}
+
+a {
+	color: var(--accent);
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+.wrap {
+	max-width: var(--max-width);
+	margin: 0 auto;
+	padding: 1.5rem 1rem 3rem;
+}
+
+.site-header {
+	border-bottom: 1px solid var(--border);
+	background: var(--panel);
+	margin-bottom: 1.5rem;
+}
+
+.site-header .inner {
+	max-width: var(--max-width);
+	margin: 0 auto;
+	padding: 1rem;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+h1 {
+	font-size: 1.5rem;
+	font-weight: 600;
+	margin: 0;
+}
+
+.subtitle {
+	margin: 0.25rem 0 0;
+	font-size: 0.875rem;
+	color: var(--muted);
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+input,
+select,
+button {
+	font: inherit;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: var(--panel2);
+	color: var(--text);
+	padding: 0.5rem 0.75rem;
+}
+
+button {
+	cursor: pointer;
+	background: var(--accent);
+	border-color: var(--accent-dim);
+	font-weight: 600;
+}
+
+button:hover {
+	filter: brightness(1.08);
+}
+
+button.ghost {
+	background: transparent;
+	border-color: var(--border);
+	font-weight: 500;
+}
+
+.grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 0.75rem;
+	margin-bottom: 1.25rem;
+}
+
+.card {
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	padding: 1rem;
+}
+
+.card .label {
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--muted);
+}
+
+.card .value {
+	margin-top: 0.35rem;
+	font-size: 1.25rem;
+	font-weight: 600;
+	word-break: break-all;
+}
+
+.card .value.sm {
+	font-size: 0.95rem;
+	font-weight: 500;
+}
+
+section {
+	margin-bottom: 1.5rem;
+}
+
+section h2 {
+	font-size: 1rem;
+	font-weight: 600;
+	margin: 0 0 0.75rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.badge {
+	font-size: 0.7rem;
+	font-weight: 600;
+	padding: 0.15rem 0.45rem;
+	border-radius: 999px;
+	background: var(--panel2);
+	border: 1px solid var(--border);
+	color: var(--muted);
+}
+
+.table-wrap {
+	overflow-x: auto;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	background: var(--panel);
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.8125rem;
+}
+
+th,
+td {
+	padding: 0.65rem 0.75rem;
+	text-align: left;
+	border-bottom: 1px solid var(--border);
+	white-space: nowrap;
+}
+
+th {
+	background: var(--panel2);
+	color: var(--muted);
+	font-weight: 600;
+	font-size: 0.72rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+tr:last-child td {
+	border-bottom: none;
+}
+
+tr:hover td {
+	background: rgba(59, 130, 246, 0.06);
+}
+
+.buy {
+	color: var(--green);
+	font-weight: 600;
+}
+
+.sell {
+	color: var(--red);
+	font-weight: 600;
+}
+
+.muted {
+	color: var(--muted);
+}
+
+.status {
+	margin-bottom: 1rem;
+	padding: 0.75rem 1rem;
+	border-radius: 10px;
+	border: 1px solid var(--border);
+	background: var(--panel);
+	font-size: 0.875rem;
+}
+
+.status.error {
+	border-color: rgba(248, 113, 113, 0.45);
+	background: rgba(248, 113, 113, 0.08);
+	color: #fecaca;
+}
+
+.status.ok {
+	border-color: rgba(52, 211, 153, 0.35);
+	background: rgba(52, 211, 153, 0.06);
+	color: #a7f3d0;
+}
+
+.status.warn {
+	border-color: rgba(251, 191, 36, 0.35);
+	background: rgba(251, 191, 36, 0.06);
+	color: #fde68a;
+}
+
+.empty {
+	padding: 2rem;
+	text-align: center;
+	color: var(--muted);
+	font-size: 0.9rem;
+}
+
+.htmx-indicator {
+	display: none;
+	color: var(--muted);
+	font-size: 0.875rem;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+	display: inline;
+}
+
+.ping-btn {
+	white-space: nowrap;
+}
+
+.ping-status {
+	display: inline-block;
+	margin: 0;
+	padding: 0.35rem 0.6rem;
+	font-size: 0.8rem;
+	vertical-align: middle;
+}
+
+.positions-section {
+	margin-bottom: 2rem;
+}
+
+.positions-section h2 {
+	font-size: 1.1rem;
+}
+
+.positions-table .pair-cell {
+	white-space: normal;
+	min-width: 180px;
+}
+
+.pair-name {
+	font-weight: 600;
+	margin-bottom: 0.35rem;
+}
+
+.side-tag {
+	display: inline-block;
+	font-size: 0.72rem;
+	font-weight: 700;
+	padding: 0.15rem 0.45rem;
+	border-radius: 4px;
+}
+
+.side-tag.buy {
+	background: rgba(52, 211, 153, 0.15);
+	color: var(--green);
+}
+
+.side-tag.sell {
+	background: rgba(248, 113, 113, 0.15);
+	color: var(--red);
+}
+
+.pnl-main {
+	font-weight: 700;
+	font-size: 0.9rem;
+}
+
+.pnl-sub {
+	font-size: 0.78rem;
+	margin-top: 0.15rem;
+}
+
+.margin-sub {
+	font-size: 0.75rem;
+	margin-top: 0.15rem;
+}
+
+.site-footer {
+	border-top: 1px solid var(--border);
+	padding: 1.5rem 1rem;
+	text-align: center;
+	font-size: 0.8rem;
+}

@@ -1,0 +1,52 @@
+{{define "positions_partial.html"}}
+<section class="positions-section">
+	<h2>Futures Positions <span class="badge">{{.PositionCnt}}</span></h2>
+	{{if .PositionsError}}
+	<div class="status error">{{.PositionsError}}</div>
+	{{else if .Positions}}
+	<div class="table-wrap positions-table">
+		<table>
+			<thead>
+				<tr>
+					<th>Trading Pair</th>
+					<th>Unrealized PNL</th>
+					<th>Est. Liq Price</th>
+					<th>Margin</th>
+					<th>Size</th>
+					<th>Entry</th>
+					<th>Mark</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .Positions}}
+				<tr>
+					<td class="pair-cell">
+						<div class="pair-name">{{.DisplaySymbol}}</div>
+						<div class="side-tag {{.SideClass}}">{{.SideLabel}}</div>
+					</td>
+					<td>
+						{{if .HasPNL}}
+						<div class="{{pnlClass .UnrealizedPNL}} pnl-main">{{formatPNL .UnrealizedPNL}} USDT</div>
+						<div class="{{pnlClass .UnrealizedPNL}} pnl-sub">{{formatFloat .PNLPercent 2}}%</div>
+						{{else}}
+						<span class="muted">—</span>
+						{{end}}
+					</td>
+					<td>{{formatFloat .Position.LiquidatePrice 8}}</td>
+					<td>
+						<div>{{formatFloat .Position.IM 4}} USDT</div>
+						<div class="muted margin-sub">({{.MarginMode}})</div>
+					</td>
+					<td>{{formatFloat .Position.HoldVol 0}}</td>
+					<td>{{formatFloat .Position.HoldAvgPrice 8}}</td>
+					<td>{{if .HasPNL}}{{formatFloat .FairPrice 8}}{{else}}—{{end}}</td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{else}}
+	<p class="empty muted">No open futures positions</p>
+	{{end}}
+</section>
+{{end}}

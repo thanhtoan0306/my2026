@@ -1,0 +1,54 @@
+{{define "header"}}
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="generator" content="mexcssr" />
+	<title>{{.Title}}</title>
+	<link rel="stylesheet" href="/static/global.css" />
+	<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body>
+	<header class="site-header">
+		<div class="inner">
+			<div>
+				<h1>MEXC Account Trades</h1>
+				<p class="subtitle">Go SSR + HTMX · <a href="https://www.mexc.com/api-docs/futures/account-and-trading-endpoints/get-open-positions">Futures</a> + <a href="https://www.mexc.com/api-docs/spot-v3/general-info">Spot</a></p>
+			</div>
+			<form class="actions"
+				hx-get="/htmx/dashboard"
+				hx-target="#page-content"
+				hx-swap="innerHTML"
+				hx-indicator="#loading">
+				<select name="symbol" aria-label="Trading pair"
+					hx-get="/htmx/dashboard"
+					hx-target="#page-content"
+					hx-swap="innerHTML"
+					hx-trigger="change"
+					hx-indicator="#loading">
+					{{range .Symbols}}
+					<option value="{{.}}"{{if eq . $.Symbol}} selected{{end}}>{{.}}</option>
+					{{end}}
+				</select>
+				<button type="submit">Refresh</button>
+				<button type="button" class="ghost ping-btn"
+					hx-post="/htmx/telegram/ping"
+					hx-target="#ping-status"
+					hx-swap="innerHTML">Ping bot</button>
+				<span id="loading" class="htmx-indicator muted">Loading…</span>
+				<span id="ping-status"></span>
+			</form>
+		</div>
+	</header>
+	<div class="wrap">
+{{end}}
+
+{{define "footer"}}
+	</div>
+	<footer class="site-footer muted">
+		<p>Rendered server-side with Go · partial updates via HTMX · no browser CORS issues</p>
+	</footer>
+</body>
+</html>
+{{end}}

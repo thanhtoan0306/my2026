@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MEXC Account Trades</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0b0f14;
+      --panel: #141b24;
+      --panel2: #1a2330;
+      --border: #2a3544;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #3b82f6;
+      --accent-dim: #2563eb;
+      --green: #34d399;
+      --red: #f87171;
+      --yellow: #fbbf24;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .subtitle {
+      margin-top: 0.25rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    input, select, button {
+      font: inherit;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      padding: 0.5rem 0.75rem;
+    }
+
+    input:focus, select:focus, button:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      border-color: var(--accent-dim);
+      font-weight: 600;
+    }
+
+    button:hover { filter: brightness(1.08); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    button.ghost {
+      background: transparent;
+      border-color: var(--border);
+      font-weight: 500;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .card .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    .card .value {
+      margin-top: 0.35rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .card .value.sm { font-size: 0.95rem; font-weight: 500; }
+
+    section {
+      margin-bottom: 1.5rem;
+    }
+
+    section h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+    }
+
+    th, td {
+      padding: 0.65rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    th {
+      background: var(--panel2);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(59, 130, 246, 0.06); }
+
+    .buy { color: var(--green); font-weight: 600; }
+    .sell { color: var(--red); font-weight: 600; }
+    .muted { color: var(--muted); }
+
+    .status {
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      font-size: 0.875rem;
+    }
+
+    .status.error {
+      border-color: rgba(248, 113, 113, 0.45);
+      background: rgba(248, 113, 113, 0.08);
+      color: #fecaca;
+    }
+
+    .status.ok {
+      border-color: rgba(52, 211, 153, 0.35);
+      background: rgba(52, 211, 153, 0.06);
+      color: #a7f3d0;
+    }
+
+    .status.warn {
+      border-color: rgba(251, 191, 36, 0.35);
+      background: rgba(251, 191, 36, 0.06);
+      color: #fde68a;
+    }
+
+    .settings {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .settings summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.875rem;
+      user-select: none;
+    }
+
+    .settings .row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 0.5rem 1rem;
+      align-items: center;
+      margin-top: 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .settings label { color: var(--muted); }
+
+    .settings input { width: 100%; }
+
+    .empty {
+      padding: 2rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 640px) {
+      .settings .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>MEXC Account Trades</h1>
+        <p class="subtitle">Spot V3 · <a href="https://www.mexc.com/api-docs/spot-v3/general-info" style="color:var(--accent)">API docs</a></p>
+      </div>
+      <div class="actions">
+        <select id="symbol" title="Trading pair">
+          <option value="HYPEUSDT">HYPEUSDT</option>
+        </select>
+        <button id="refresh" type="button">Refresh</button>
+        <button id="toggleSettings" class="ghost" type="button">Settings</button>
+      </div>
+    </header>
+
+    <div id="status" class="status warn">Loading…</div>
+
+    <div class="grid" id="summary"></div>
+
+    <section>
+      <h2>Balances <span class="badge" id="balanceCount">0</span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Asset</th>
+              <th>Free</th>
+              <th>Locked</th>
+              <th>Available</th>
+            </tr>
+          </thead>
+          <tbody id="balancesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>My Trades <span class="badge" id="tradeCount">0</span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Symbol</th>
+              <th>Side</th>
+              <th>Price</th>
+              <th>Qty</th>
+              <th>Quote</th>
+              <th>Fee</th>
+              <th>Maker</th>
+              <th>Order ID</th>
+            </tr>
+          </thead>
+          <tbody id="tradesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Orders (7d) <span class="badge" id="orderCount">0</span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Symbol</th>
+              <th>Side</th>
+              <th>Type</th>
+              <th>Price</th>
+              <th>Qty</th>
+              <th>Filled</th>
+              <th>Status</th>
+              <th>Order ID</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <details class="settings" id="settingsPanel">
+      <summary>API &amp; proxy settings (keys in localStorage only — use Go app + .env for server)</summary>
+      <div class="row"><label for="apiKey">API Key</label><input id="apiKey" type="text" autocomplete="off" /></div>
+      <div class="row"><label for="secretKey">Secret</label><input id="secretKey" type="password" autocomplete="off" /></div>
+      <div class="row">
+        <label for="proxyUrl">CORS proxy</label>
+        <input id="proxyUrl" type="text" placeholder="e.g. http://127.0.0.1:8787/?url=" />
+      </div>
+      <p class="muted" style="margin-top:0.75rem;font-size:0.8rem;">
+        For live refresh: <code>cd june/mexcapi && python3 -m http.server 8080</code> then open
+        <code>http://localhost:8080/index.html</code>. The page registers a local proxy (Service Worker) to reach api.mexc.com.
+        Your API key is IP-bound — requests must come from the whitelisted IP.
+      </p>
+    </details>
+  </div>
+
+  <script>
+    const REMOTE = "https://api.mexc.com";
+    let BASE = REMOTE;
+    const SNAPSHOT = {
+      account: {"canTrade":true,"canWithdraw":true,"canDeposit":true,"accountType":"SPOT","balances":[{"asset":"USDT","free":"80.64767166","locked":"0","available":"80.64767166"},{"asset":"USDC","free":"30","locked":"0","available":"30"},{"asset":"HYPE","free":"0.06","locked":"0","available":"0.06"}]},
+      trades: [{"symbol":"HYPEUSDT","price":"57.85","qty":"0.02","quoteQty":"1.157","commission":"0","commissionAsset":"USDT","time":1781251789000,"isBuyer":true,"isMaker":true,"orderId":"C02__694029444351733760070"},{"symbol":"HYPEUSDT","price":"55.24","qty":"0.02","quoteQty":"1.1048","commission":"0.0005524","commissionAsset":"USDT","time":1781093228000,"isBuyer":true,"isMaker":false,"orderId":"C02__693364556763713537070"},{"symbol":"HYPEUSDT","price":"62.09","qty":"0.02","quoteQty":"1.2418","commission":"0.0006209","commissionAsset":"USDT","time":1780966760000,"isBuyer":true,"isMaker":false,"orderId":"C02__692834109017247745070"},{"symbol":"HYPEUSDT","price":"64.68","qty":"0.02","quoteQty":"1.2936","commission":"0.0006468","commissionAsset":"USDT","time":1780934436000,"isBuyer":true,"isMaker":false,"orderId":"C02__692698534264049664070"}],
+      orders: [{"symbol":"HYPEUSDT","orderId":"C02__694029444351733760070","price":"57.85","origQty":"0.02","executedQty":"0.02","status":"FILLED","type":"LIMIT","side":"BUY","time":1781251750000}]
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function cfg() {
+      return {
+        apiKey: $("apiKey").value.trim(),
+        secret: $("secretKey").value.trim(),
+        proxy: $("proxyUrl").value.trim(),
+        symbol: $("symbol").value.trim().toUpperCase(),
+      };
+    }
+
+    function setStatus(kind, msg) {
+      const el = $("status");
+      el.className = "status " + kind;
+      el.textContent = msg;
+    }
+
+    async function hmacSha256(query, secret) {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        "raw", enc.encode(secret),
+        { name: "HMAC", hash: "SHA-256" },
+        false, ["sign"]
+      );
+      const sig = await crypto.subtle.sign("HMAC", key, enc.encode(query));
+      return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function serverTime() {
+      const res = await rawFetch("/api/v3/time");
+      const data = await res.json();
+      return data.serverTime;
+    }
+
+    function apiUrl(path) {
+      const { proxy } = cfg();
+      const remote = REMOTE + path;
+      if (proxy) return proxy + encodeURIComponent(remote);
+      return BASE + path;
+    }
+
+    async function rawFetch(path) {
+      return fetch(apiUrl(path), { headers: { Accept: "application/json" } });
+    }
+
+    async function signedGet(path, params) {
+      const { apiKey, secret } = cfg();
+      if (!apiKey || !secret) {
+        throw new Error("Enter API key and secret in Settings (or use the Go app with .env)");
+      }
+      const ts = await serverTime();
+      const qp = new URLSearchParams({ ...params, recvWindow: "5000", timestamp: String(ts) });
+      const query = qp.toString();
+      const signature = await hmacSha256(query, secret);
+      const fullPath = path + "?" + query + "&signature=" + signature;
+      const res = await fetch(apiUrl(fullPath), {
+        headers: {
+          "X-MEXC-APIKEY": apiKey,
+          Accept: "application/json",
+        },
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (!res.ok || data.code) {
+        const msg = data.msg || data.message || res.statusText || "Request failed";
+        throw new Error(msg + (data.code ? " (" + data.code + ")" : ""));
+      }
+      return data;
+    }
+
+    function fmtTime(ms) {
+      if (!ms) return "—";
+      return new Date(Number(ms)).toLocaleString();
+    }
+
+    function fmtNum(v, d = 8) {
+      if (v == null || v === "") return "—";
+      const n = Number(v);
+      if (Number.isNaN(n)) return String(v);
+      return n.toLocaleString(undefined, { maximumFractionDigits: d });
+    }
+
+    function shortId(id) {
+      if (!id) return "—";
+      const s = String(id);
+      return s.length > 14 ? s.slice(0, 8) + "…" + s.slice(-4) : s;
+    }
+
+    function renderBalances(account) {
+      const rows = (account.balances || [])
+        .filter((b) => Number(b.free) > 0 || Number(b.locked) > 0)
+        .sort((a, b) => Number(b.free) - Number(a.free));
+
+      $("balanceCount").textContent = rows.length;
+      $("balancesBody").innerHTML = rows.length
+        ? rows.map((b) => `
+          <tr>
+            <td><strong>${b.asset}</strong></td>
+            <td>${fmtNum(b.free)}</td>
+            <td>${fmtNum(b.locked)}</td>
+            <td>${fmtNum(b.available ?? b.free)}</td>
+          </tr>`).join("")
+        : `<tr><td colspan="4" class="empty">No non-zero balances</td></tr>`;
+
+      const quotes = ["USDT", "USDC", "BTC", "ETH"];
+      const assets = rows.map((b) => b.asset).filter((a) => !quotes.includes(a));
+      const sel = $("symbol");
+      const current = sel.value;
+      const symbols = new Set([current, ...assets.flatMap((a) => quotes.map((q) => a + q))]);
+      const sorted = [...symbols].sort();
+      sel.innerHTML = sorted.map((s) => `<option value="${s}"${s === current ? " selected" : ""}>${s}</option>`).join("");
+    }
+
+    function renderTrades(trades) {
+      $("tradeCount").textContent = trades.length;
+      if (!trades.length) {
+        $("tradesBody").innerHTML = `<tr><td colspan="9" class="empty">No trades for this symbol (last 30 days)</td></tr>`;
+        return;
+      }
+      const sorted = [...trades].sort((a, b) => b.time - a.time);
+      $("tradesBody").innerHTML = sorted.map((t) => {
+        const side = t.isBuyer ? "BUY" : "SELL";
+        const cls = t.isBuyer ? "buy" : "sell";
+        return `
+          <tr>
+            <td>${fmtTime(t.time)}</td>
+            <td>${t.symbol}</td>
+            <td class="${cls}">${side}</td>
+            <td>${fmtNum(t.price)}</td>
+            <td>${fmtNum(t.qty)}</td>
+            <td>${fmtNum(t.quoteQty)}</td>
+            <td>${fmtNum(t.commission, 6)} ${t.commissionAsset || ""}</td>
+            <td>${t.isMaker ? "Yes" : "No"}</td>
+            <td class="muted" title="${t.orderId}">${shortId(t.orderId)}</td>
+          </tr>`;
+      }).join("");
+    }
+
+    function renderOrders(orders) {
+      $("orderCount").textContent = orders.length;
+      if (!orders.length) {
+        $("ordersBody").innerHTML = `<tr><td colspan="9" class="empty">No orders for this symbol (last 7 days)</td></tr>`;
+        return;
+      }
+      const sorted = [...orders].sort((a, b) => b.time - a.time);
+      $("ordersBody").innerHTML = sorted.map((o) => {
+        const cls = o.side === "BUY" ? "buy" : "sell";
+        return `
+          <tr>
+            <td>${fmtTime(o.time)}</td>
+            <td>${o.symbol}</td>
+            <td class="${cls}">${o.side}</td>
+            <td>${o.type || "—"}</td>
+            <td>${fmtNum(o.price)}</td>
+            <td>${fmtNum(o.origQty)}</td>
+            <td>${fmtNum(o.executedQty)}</td>
+            <td>${o.status}</td>
+            <td class="muted" title="${o.orderId}">${shortId(o.orderId)}</td>
+          </tr>`;
+      }).join("");
+    }
+
+    function renderSummary(account, trades) {
+      const nonZero = (account.balances || []).filter((b) => Number(b.free) > 0 || Number(b.locked) > 0);
+      const usdt = nonZero.find((b) => b.asset === "USDT");
+      let buyVol = 0, sellVol = 0;
+      for (const t of trades) {
+        const q = Number(t.quoteQty) || 0;
+        if (t.isBuyer) buyVol += q; else sellVol += q;
+      }
+      $("summary").innerHTML = `
+        <div class="card"><div class="label">Can trade</div><div class="value sm">${account.canTrade ? "Yes" : "No"}</div></div>
+        <div class="card"><div class="label">Account</div><div class="value sm">${account.accountType || "SPOT"}</div></div>
+        <div class="card"><div class="label">USDT free</div><div class="value">${usdt ? fmtNum(usdt.free, 4) : "—"}</div></div>
+        <div class="card"><div class="label">Assets</div><div class="value">${nonZero.length}</div></div>
+        <div class="card"><div class="label">Trades (${cfg().symbol})</div><div class="value">${trades.length}</div></div>
+        <div class="card"><div class="label">Buy volume</div><div class="value sm buy">${fmtNum(buyVol, 4)}</div></div>
+        <div class="card"><div class="label">Sell volume</div><div class="value sm sell">${fmtNum(sellVol, 4)}</div></div>
+      `;
+    }
+
+    function showSnapshot(note) {
+      renderBalances(SNAPSHOT.account);
+      renderTrades(SNAPSHOT.trades);
+      renderOrders(SNAPSHOT.orders);
+      renderSummary(SNAPSHOT.account, SNAPSHOT.trades);
+      setStatus("warn", note);
+    }
+
+    async function loadAll() {
+      const btn = $("refresh");
+      btn.disabled = true;
+      setStatus("warn", "Fetching account, trades, and orders…");
+      try {
+        const symbol = cfg().symbol;
+        const [account, trades, orders] = await Promise.all([
+          signedGet("/api/v3/account", {}),
+          signedGet("/api/v3/myTrades", { symbol, limit: "100" }),
+          signedGet("/api/v3/allOrders", { symbol, limit: "100" }),
+        ]);
+        renderBalances(account);
+        renderTrades(trades);
+        renderOrders(orders);
+        renderSummary(account, trades);
+        setStatus("ok", `Updated ${new Date().toLocaleString()} · ${symbol}`);
+      } catch (err) {
+        const cors = String(err).includes("Failed to fetch");
+        const hint = cors
+          ? "Run: cd june/mexcapi && python3 -m http.server 8080 — then open http://localhost:8080/index.html (uses built-in proxy). Showing last snapshot."
+          : "";
+        showSnapshot(String(err.message || err) + hint);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function setupProxy() {
+      if (!("serviceWorker" in navigator) || location.protocol === "file:") return false;
+      const sw = `
+        self.addEventListener("fetch", (e) => {
+          const u = new URL(e.request.url);
+          if (!u.pathname.startsWith("/mexc-api/")) return;
+          const target = "${REMOTE}" + u.pathname.slice("/mexc-api".length) + u.search;
+          e.respondWith(fetch(target, {
+            method: e.request.method,
+            headers: e.request.headers,
+            body: e.request.method === "GET" ? undefined : e.request.body
+          }));
+        });
+      `;
+      try {
+        const blob = new Blob([sw], { type: "application/javascript" });
+        const reg = await navigator.serviceWorker.register(URL.createObjectURL(blob), { scope: "./" });
+        await navigator.serviceWorker.ready;
+        BASE = "/mexc-api";
+        return !!reg;
+      } catch {
+        return false;
+      }
+    }
+
+    async function init() {
+      const proxied = await setupProxy();
+      if (proxied) {
+        setStatus("ok", "Local API proxy active — live refresh enabled.");
+      } else if (location.protocol === "file:") {
+        showSnapshot("Opened as file:// — showing snapshot. Serve via http://localhost:8080 for live data.");
+        return;
+      }
+      $("apiKey").value = localStorage.getItem("mexc_api_key") || "";
+      $("secretKey").value = localStorage.getItem("mexc_secret") || "";
+      $("proxyUrl").value = localStorage.getItem("mexc_proxy") || "";
+
+      $("refresh").addEventListener("click", loadAll);
+      $("symbol").addEventListener("change", loadAll);
+      $("toggleSettings").addEventListener("click", () => {
+        $("settingsPanel").open = !$("settingsPanel").open;
+      });
+      ["apiKey", "secretKey", "proxyUrl"].forEach((id) => {
+        $(id).addEventListener("change", () => {
+          localStorage.setItem("mexc_api_key", $("apiKey").value);
+          localStorage.setItem("mexc_secret", $("secretKey").value);
+          localStorage.setItem("mexc_proxy", $("proxyUrl").value);
+        });
+      });
+
+      loadAll();
+    }
+
+    init();
+  </script>
+</body>
+</html>

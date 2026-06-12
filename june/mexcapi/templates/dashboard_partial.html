@@ -1,0 +1,148 @@
+{{define "dashboard_partial.html"}}
+{{if .Error}}
+<div class="status error">{{.Error}}</div>
+{{else}}
+<div class="status ok">Updated {{.Updated}} · {{.Symbol}}</div>
+{{end}}
+
+<div class="grid">
+	<div class="card">
+		<div class="label">Can trade</div>
+		<div class="value sm">{{if and .Account .Account.CanTrade}}Yes{{else}}No{{end}}</div>
+	</div>
+	<div class="card">
+		<div class="label">Account</div>
+		<div class="value sm">{{if .Account}}{{.Account.AccountType}}{{else}}—{{end}}</div>
+	</div>
+	<div class="card">
+		<div class="label">USDT free</div>
+		<div class="value">{{if .Account}}{{usdtFree .Account.Balances}}{{else}}—{{end}}</div>
+	</div>
+	<div class="card">
+		<div class="label">Assets</div>
+		<div class="value">{{.BalanceCnt}}</div>
+	</div>
+	<div class="card">
+		<div class="label">Trades ({{.Symbol}})</div>
+		<div class="value">{{.TradeCnt}}</div>
+	</div>
+	<div class="card">
+		<div class="label">Buy volume</div>
+		<div class="value sm buy">{{formatFloat .BuyVol 4}}</div>
+	</div>
+	<div class="card">
+		<div class="label">Sell volume</div>
+		<div class="value sm sell">{{formatFloat .SellVol 4}}</div>
+	</div>
+</div>
+
+<section>
+	<h2>Balances <span class="badge">{{.BalanceCnt}}</span></h2>
+	<div class="table-wrap">
+		<table>
+			<thead>
+				<tr>
+					<th>Asset</th>
+					<th>Free</th>
+					<th>Locked</th>
+					<th>Available</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{if .Balances}}
+				{{range .Balances}}
+				<tr>
+					<td><strong>{{.Asset}}</strong></td>
+					<td>{{formatNum .Free 8}}</td>
+					<td>{{formatNum .Locked 8}}</td>
+					<td>{{formatNum .Available 8}}</td>
+				</tr>
+				{{end}}
+				{{else}}
+				<tr><td colspan="4" class="empty">No non-zero balances</td></tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+</section>
+
+<section>
+	<h2>My Trades <span class="badge">{{.TradeCnt}}</span></h2>
+	<div class="table-wrap">
+		<table>
+			<thead>
+				<tr>
+					<th>Time</th>
+					<th>Symbol</th>
+					<th>Side</th>
+					<th>Price</th>
+					<th>Qty</th>
+					<th>Quote</th>
+					<th>Fee</th>
+					<th>Maker</th>
+					<th>Order ID</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{if .Trades}}
+				{{range .Trades}}
+				<tr>
+					<td>{{formatTime .Time}}</td>
+					<td>{{.Symbol}}</td>
+					<td class="{{tradeSideClass .IsBuyer}}">{{tradeSideLabel .IsBuyer}}</td>
+					<td>{{formatNum .Price 8}}</td>
+					<td>{{formatNum .Qty 8}}</td>
+					<td>{{formatNum .QuoteQty 8}}</td>
+					<td>{{formatNum .Commission 6}} {{.CommissionAsset}}</td>
+					<td>{{if .IsMaker}}Yes{{else}}No{{end}}</td>
+					<td class="muted" title="{{.OrderID}}">{{shortID .OrderID}}</td>
+				</tr>
+				{{end}}
+				{{else}}
+				<tr><td colspan="9" class="empty">No trades for this symbol (last 30 days)</td></tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+</section>
+
+<section>
+	<h2>Orders (7d) <span class="badge">{{.OrderCnt}}</span></h2>
+	<div class="table-wrap">
+		<table>
+			<thead>
+				<tr>
+					<th>Time</th>
+					<th>Symbol</th>
+					<th>Side</th>
+					<th>Type</th>
+					<th>Price</th>
+					<th>Qty</th>
+					<th>Filled</th>
+					<th>Status</th>
+					<th>Order ID</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{if .Orders}}
+				{{range .Orders}}
+				<tr>
+					<td>{{formatTime .Time}}</td>
+					<td>{{.Symbol}}</td>
+					<td class="{{orderSideClass .Side}}">{{.Side}}</td>
+					<td>{{if .Type}}{{.Type}}{{else}}—{{end}}</td>
+					<td>{{formatNum .Price 8}}</td>
+					<td>{{formatNum .OrigQty 8}}</td>
+					<td>{{formatNum .ExecutedQty 8}}</td>
+					<td>{{.Status}}</td>
+					<td class="muted" title="{{.OrderID}}">{{shortID .OrderID}}</td>
+				</tr>
+				{{end}}
+				{{else}}
+				<tr><td colspan="9" class="empty">No orders for this symbol (last 7 days)</td></tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+</section>
+{{end}}
